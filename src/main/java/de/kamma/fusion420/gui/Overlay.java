@@ -14,8 +14,9 @@ import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.KeyEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,11 +24,12 @@ import java.util.List;
 /**
  * Zeichnet die besten Fusionen rechts neben das offene Fusions-GUI.
  *
- * <p>Gerendert wird ueber {@code ScreenEvents} statt ueber einen eigenen
- * Eingriff in {@code render}. Fabric API garantiert die Signatur dieses
- * Ereignisses ueber Versionen hinweg, und mehrere Mods koennen sich
- * gefahrlos daran haengen — genau das macht die Mod vertraeglich mit
- * SkyHanni, NEU und aehnlichen Oberflaechen-Mods.
+ * <p>Gezeichnet wird im Ereignis {@code ScreenEvents.afterExtract} statt in
+ * einem eigenen Eingriff in den Renderweg. Minecraft 26.1 baut die Oberflaeche
+ * in einem Auslesedurchgang zusammen; {@code afterExtract} ist dessen Ende und
+ * liegt damit ueber allem — Hintergrund, Gegenstaenden, Text und Tooltips.
+ * Beliebig viele Mods koennen sich an dasselbe Ereignis haengen, deshalb
+ * vertraegt sich das mit SkyHanni, NEU und aehnlichen Oberflaechen-Mods.
  */
 public final class Overlay {
 
@@ -63,15 +65,16 @@ public final class Overlay {
 			}
 
 			Zustand zustand = new Zustand(Modus.ausText(e.preisModus));
-			ScreenEvents.afterRender(bildschirm).register(
-					(s, grafik, mausX, mausY, versatz) -> zeichnen(behaelter, grafik, kontext, zustand));
+			ScreenEvents.afterExtract(bildschirm).register(
+					(s, grafik, mausX, mausY, tickFortschritt) -> zeichnen(behaelter, grafik, kontext, zustand));
 			ScreenKeyboardEvents.afterKeyPress(bildschirm).register(
-					(s, taste, kennung, zusatz) -> tasteGedrueckt(taste, kontext, zustand));
+					(s, ereignis) -> tasteGedrueckt(ereignis, kontext, zustand));
 		});
 	}
 
-	private static void tasteGedrueckt(int taste, Kontext kontext, Zustand zustand) {
+	private static void tasteGedrueckt(KeyEvent ereignis, Kontext kontext, Zustand zustand) {
 		Einstellungen e = kontext.einstellungen();
+		int taste = ereignis.key();
 		if (taste == e.tasteModusWechsel) {
 			zustand.modus = zustand.modus.naechster();
 			e.preisModus = zustand.modus.name();
@@ -83,10 +86,10 @@ public final class Overlay {
 		}
 	}
 
-	private static void zeichnen(AbstractContainerScreen<?> behaelter, GuiGraphics grafik,
+	private static void zeichnen(AbstractContainerScreen<?> behaelter, GuiGraphicsExtractor grafik,
 			Kontext kontext, Zustand zustand) {
-		Minecraft mc = Minecraft.getInstance();
-		if (mc == null || mc.font == null) {
+		Font schrift = Minecraft.getInstance().font;
+		if (schrift == null) {
 			return;
 		}
 		Einstellungen e = kontext.einstellungen();
@@ -109,13 +112,11 @@ public final class Overlay {
 		grafik.fill(x, y, x + breite, y + hoehe, FARBE_GRUND);
 		rahmen(grafik, x, y, breite, hoehe);
 
-		Font schrift = mc.font;
 		int textX = x + RAND;
 		int textY = y + RAND;
 		int textBreite = breite - 2 * RAND;
 		for (Zeile zeile : zeilen) {
-			grafik.drawString(schrift, kuerzen(schrift, zeile.text(), textBreite), textX, textY,
-					zeile.farbe(), false);
+			grafik.text(schrift, kuerzen(schrift, zeile.text(), textBreite), textX, textY, zeile.farbe());
 			textY += ZEILE;
 		}
 	}
@@ -191,7 +192,7 @@ public final class Overlay {
 		return "Preise " + alter + "s alt  -  M Modus, R neu";
 	}
 
-	private static void rahmen(GuiGraphics grafik, int x, int y, int breite, int hoehe) {
+	private static void rahmen(GuiGraphicsExtractor grafik, int x, int y, int breite, int hoehe) {
 		grafik.fill(x, y, x + breite, y + 1, FARBE_RAHMEN);
 		grafik.fill(x, y + hoehe - 1, x + breite, y + hoehe, FARBE_RAHMEN);
 		grafik.fill(x, y, x + 1, y + hoehe, FARBE_RAHMEN);

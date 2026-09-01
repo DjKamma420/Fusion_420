@@ -74,11 +74,13 @@ Gewinn, den man wirklich in der Hand hält.
 
 ## Verträglich mit anderen Mods
 
-Gezeichnet wird über `ScreenEvents` aus der Fabric API, nicht durch einen
-eigenen Eingriff in `AbstractContainerScreen#render`. Genau dort geraten
-SkyHanni, NEU und Patcher sich sonst in die Quere. Der einzige Mixin ist ein
-`@Accessor` auf die Maße des GUI — der ändert keinen Kontrollfluss und kann
-mit nichts kollidieren.
+Gezeichnet wird im Ereignis `ScreenEvents.afterExtract` der Fabric API, nicht
+durch einen eigenen Eingriff in den Renderweg. Minecraft 26.1 baut die
+Oberfläche in einem Auslesedurchgang zusammen; `afterExtract` ist dessen Ende
+und liegt damit über allem — Hintergrund, Gegenständen, Text und Tooltips. An
+dasselbe Ereignis können sich beliebig viele Mods hängen, dort geht niemandem
+etwas verloren. Der einzige Mixin ist ein `@Accessor` auf die Maße des GUI —
+der ändert keinen Kontrollfluss und kann mit nichts kollidieren.
 
 ## Rezeptdaten
 
