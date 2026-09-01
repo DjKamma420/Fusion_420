@@ -1,15 +1,16 @@
-name: Wunsch
-description: Vorschlag für eine Erweiterung
-labels: ["wunsch"]
+name: Feature Request
+description: Suggest an improvement or new feature
+labels: ["enhancement"]
 body:
   - type: textarea
     id: problem
     attributes:
-      label: Welches Problem soll das lösen?
-      description: Bitte das Problem beschreiben, nicht schon die Lösung.
+      label: What problem should this solve?
+      description: Describe the problem or use case rather than prescribing the implementation.
     validations:
       required: true
   - type: textarea
-    id: idee
+    id: idea
     attributes:
-      label: Wie stellst du dir das vor?
+      label: What would you like to see?
+      description: Describe the desired behavior or result.
