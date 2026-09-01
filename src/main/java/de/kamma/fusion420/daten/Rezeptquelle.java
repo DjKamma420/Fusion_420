@@ -14,17 +14,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-/**
- * Beschafft die Rezeptdaten — in dieser Reihenfolge: aus dem Netz, sonst aus
- * dem lokalen Zwischenspeicher, sonst aus der mitgelieferten Fassung.
- *
- * <p>Hypixel aendert die Fusionstabelle mit jedem Inhaltsupdate. Ohne den
- * Abruf aus dem Netz waere die Mod schon nach wenigen Wochen falsch, und ein
- * neues Release nur wegen einer Datendatei ist Unfug.
- */
+/** Loads recipe data from the network, cache, or bundled fallback. */
 public final class Rezeptquelle {
 
 	private static final Logger LOG = LoggerFactory.getLogger("Fusion 420");
@@ -50,36 +43,35 @@ public final class Rezeptquelle {
 				String json = ausDemNetz(einstellungen.rezeptQuelleUrl);
 				Rezeptbuch buch = Rezeptbuch.ausJson(json, "online");
 				ablegen(zwischenspeicher, json);
-				LOG.info("Rezepte aus dem Netz geladen: {} Shards, {} Rezepte",
+				LOG.info("Loaded recipe data online: {} shards, {} recipes",
 						buch.shardAnzahl(), buch.rezeptAnzahl());
 				return buch;
 			} catch (Exception e) {
-				LOG.warn("Rezepte konnten nicht aus dem Netz geladen werden ({}), nutze Zwischenspeicher",
-						e.toString());
+				LOG.warn("Could not load recipe data online ({}); using cache", e.toString());
 			}
 		}
 
 		try {
 			if (Files.isRegularFile(zwischenspeicher)) {
 				Rezeptbuch buch = Rezeptbuch.ausJson(
-						Files.readString(zwischenspeicher, StandardCharsets.UTF_8), "Zwischenspeicher");
-				LOG.info("Rezepte aus dem Zwischenspeicher geladen: {} Rezepte", buch.rezeptAnzahl());
+						Files.readString(zwischenspeicher, StandardCharsets.UTF_8), "cache");
+				LOG.info("Loaded recipe data from cache: {} recipes", buch.rezeptAnzahl());
 				return buch;
 			}
 		} catch (Exception e) {
-			LOG.warn("Zwischenspeicher unbrauchbar ({}), nutze mitgelieferte Fassung", e.toString());
+			LOG.warn("Recipe cache is unusable ({}); using bundled data", e.toString());
 		}
 
 		try (InputStream strom = Rezeptquelle.class.getResourceAsStream(MITGELIEFERT)) {
 			if (strom == null) {
-				throw new IllegalStateException("Mitgelieferte Rezeptdaten fehlen im Jar");
+				throw new IllegalStateException("Bundled recipe data is missing from the JAR");
 			}
 			Rezeptbuch buch = Rezeptbuch.ausJson(
-					new String(strom.readAllBytes(), StandardCharsets.UTF_8), "mitgeliefert");
-			LOG.info("Mitgelieferte Rezepte geladen: {} Rezepte", buch.rezeptAnzahl());
+					new String(strom.readAllBytes(), StandardCharsets.UTF_8), "bundled");
+			LOG.info("Loaded bundled recipe data: {} recipes", buch.rezeptAnzahl());
 			return buch;
 		} catch (Exception e) {
-			throw new IllegalStateException("Rezeptdaten sind aus keiner Quelle ladbar", e);
+			throw new IllegalStateException("Recipe data could not be loaded from any source", e);
 		}
 	}
 
@@ -109,7 +101,7 @@ public final class Rezeptquelle {
 			}
 			Files.writeString(ziel, json, StandardCharsets.UTF_8);
 		} catch (Exception e) {
-			LOG.warn("Zwischenspeicher liess sich nicht schreiben: {}", e.toString());
+			LOG.warn("Could not write recipe cache: {}", e.toString());
 		}
 	}
 }
