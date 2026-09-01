@@ -10,22 +10,36 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-/** Rechnet aus, welche Fusionen der vorhandenen Shards sich lohnen. */
+/** Calculates profitable fusion combinations. */
 public final class Gewinnrechner {
 	private Gewinnrechner() { }
 
 	public static List<Fusion> beste(List<Shard> vorhanden, Rezeptbuch buch, Map<String, Preis> preise,
 			Einkaufsmodus einkauf, Verkaufsmodus verkauf, double steuerProzent,
 			long mindestVolumen, int anzahl) {
+		return beste(vorhanden, buch, preise, einkauf, verkauf, steuerProzent, mindestVolumen, anzahl, null);
+	}
+
+	/**
+	 * Calculates the best fusions. If focusShardKey is set, every returned recipe
+	 * must use that shard as one of its two inputs. This is used when the player
+	 * selects a single shard in the fusion GUI.
+	 */
+	public static List<Fusion> beste(List<Shard> vorhanden, Rezeptbuch buch, Map<String, Preis> preise,
+			Einkaufsmodus einkauf, Verkaufsmodus verkauf, double steuerProzent,
+			long mindestVolumen, int anzahl, String focusShardKey) {
 		if (vorhanden == null || vorhanden.isEmpty() || buch == null || preise == null || preise.isEmpty()) return List.of();
 		double nachSteuer = 1.0 - Math.clamp(steuerProzent, 0.0, 100.0) / 100.0;
 		List<Fusion> gefunden = new ArrayList<>();
 		for (int i = 0; i < vorhanden.size(); i++) {
 			Shard a = vorhanden.get(i);
+			if (focusShardKey != null && !focusShardKey.equals(a.schluessel())) continue;
 			Preis preisA = preise.get(a.bazaarId());
 			if (einkauf != Einkaufsmodus.GEFARMT && (preisA == null || !preisA.handelbar())) continue;
-			for (int j = i; j < vorhanden.size(); j++) {
+			for (int j = 0; j < vorhanden.size(); j++) {
+				if (focusShardKey == null && j < i) continue;
 				Shard b = vorhanden.get(j);
+				if (focusShardKey != null && a.schluessel().equals(b.schluessel()) && vorhanden.size() > 1) continue;
 				Preis preisB = preise.get(b.bazaarId());
 				if (einkauf != Einkaufsmodus.GEFARMT && (preisB == null || !preisB.handelbar())) continue;
 
@@ -35,9 +49,6 @@ public final class Gewinnrechner {
 					long volumen = preisAus.engpassVolumenWoche();
 					if (volumen < mindestVolumen) continue;
 
-					// Die Menge steht am konkreten Rezept. Das ist fuer Sonderregeln wie
-					// Chameleon wichtig: dort ist die Eingabemenge nicht zwingend die
-					// normale fuse_amount des Shards.
 					double kosten = einkauf == Einkaufsmodus.GEFARMT ? 0.0
 							: rezept.eingabeA().fusionsMenge() * einkauf.preis(preisA)
 							+ rezept.eingabeB().fusionsMenge() * einkauf.preis(preisB);
@@ -49,10 +60,11 @@ public final class Gewinnrechner {
 			}
 		}
 		gefunden.sort(Comparator.comparingDouble(Fusion::gewinn).reversed());
-		return List.copyOf(gefunden.subList(0, Math.min(anzahl, gefunden.size())));
+		if (anzahl <= 0 || anzahl >= gefunden.size()) return List.copyOf(gefunden);
+		return List.copyOf(gefunden.subList(0, anzahl));
 	}
 
-	/** Kompatibilitaet fuer vorhandene Aufrufer. */
+	/** Compatibility overload for existing callers. */
 	public static List<Fusion> beste(List<Shard> vorhanden, Rezeptbuch buch, Map<String, Preis> preise,
 			Modus modus, double steuerProzent, long mindestVolumen, int anzahl) {
 		Einkaufsmodus einkauf = switch (modus) {
