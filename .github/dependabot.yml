@@ -1,0 +1,11 @@
+# Hält die Aktionen der Arbeitsabläufe aktuell. Gradle-Abhängigkeiten bleiben
+# bewusst außen vor: Minecraft-, Loader- und Fabric-API-Version müssen
+# zueinander passen und werden von Hand gemeinsam gehoben.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "CI"

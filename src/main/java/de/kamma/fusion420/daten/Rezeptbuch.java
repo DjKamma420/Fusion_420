@@ -37,17 +37,29 @@ public final class Rezeptbuch {
 	private final Map<String, Integer> indexNachSchluessel;
 	private final String[] schluesselNachIndex;
 	private final long[] index;
+	private final String herkunft;
 
 	private Rezeptbuch(Map<String, Shard> nachSchluessel, Map<String, Shard> nachName,
-			Map<String, Integer> indexNachSchluessel, String[] schluesselNachIndex, long[] index) {
+			Map<String, Integer> indexNachSchluessel, String[] schluesselNachIndex, long[] index,
+			String herkunft) {
 		this.nachSchluessel = nachSchluessel;
 		this.nachName = nachName;
 		this.indexNachSchluessel = indexNachSchluessel;
 		this.schluesselNachIndex = schluesselNachIndex;
 		this.index = index;
+		this.herkunft = herkunft;
 	}
 
 	public static Rezeptbuch ausJson(String json) {
+		return ausJson(json, "unbekannt");
+	}
+
+	/**
+	 * @param herkunft woher die Daten stammen; das Overlay zeigt es an, damit
+	 *                 sichtbar wird, wenn nur die mitgelieferte — also
+	 *                 moeglicherweise veraltete — Fassung greift
+	 */
+	public static Rezeptbuch ausJson(String json, String herkunft) {
 		JsonObject wurzel = JsonParser.parseString(json).getAsJsonObject();
 		JsonObject shardsJson = wurzel.getAsJsonObject("shards");
 		JsonObject rezepteJson = wurzel.has("recipes") && wurzel.get("recipes").isJsonObject()
@@ -116,7 +128,7 @@ public final class Rezeptbuch {
 		long[] index = Arrays.copyOf(roh, anzahl);
 		Arrays.sort(index);
 		return new Rezeptbuch(Map.copyOf(nachSchluessel), Map.copyOf(nachName),
-				Map.copyOf(indexNachSchluessel), schluessel.toArray(new String[0]), index);
+				Map.copyOf(indexNachSchluessel), schluessel.toArray(new String[0]), index, herkunft);
 	}
 
 	/** Alle Fusionen, die aus genau diesem Paar entstehen koennen. */
@@ -168,6 +180,10 @@ public final class Rezeptbuch {
 
 	public int rezeptAnzahl() {
 		return index.length;
+	}
+
+	public String herkunft() {
+		return herkunft;
 	}
 
 	/** Farbcodes weg, alles klein, nur Buchstaben und Ziffern, ohne "shard" am Ende. */

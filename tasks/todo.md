@@ -32,8 +32,22 @@
       aus dieser Umgebung nicht herunterladen lassen (Blob-Host gesperrt) —
       die Prüfung muss also dort laufen, wo das Jar entsteht.
 
+- [x] Prüfung auf neuere Freigaben beim Start, mit Hinweis im Overlay
+- [x] Warnung im Overlay bei Shards, die die Rezeptdaten nicht kennen —
+      so wird ein Hypixel-Update sichtbar, bevor die Mod falsch rechnet
+- [x] Herkunft der Rezeptdaten im Overlay (online / Zwischenspeicher /
+      mitgeliefert)
+- [x] Prism-Anleitung, Aktualisierungswege und Portierungsanleitung in der
+      README; CHANGELOG, CONTRIBUTING, Fehlervorlagen, Dependabot, editorconfig
+
 ## Offen
 
+- [ ] **Klarname und private Adresse aus der Historie entfernen.** Alle sechs
+      Commits tragen bislang `Lars Anton Rossbach <l.anton.rossbach@gmail.com>`,
+      auch der von Hand angelegte erste. Erfordert Umschreiben und einen
+      erzwungenen Push — steht aus, bis freigegeben. Damit es nicht erneut
+      passiert, muss zusätzlich in den GitHub-Kontoeinstellungen
+      "Keep my email addresses private" an und der Profilname geprüft werden.
 - [ ] **Modrinth** — Projekt anlegen, dann `MODRINTH_TOKEN` (Secret) und
       `MODRINTH_ID` (Variable) im Repo hinterlegen. Erst danach greift der
       Upload-Schritt in `freigabe.yml`; er ist bislang ungetestet.
