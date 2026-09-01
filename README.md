@@ -1,232 +1,199 @@
 # Fusion 420
 
-Fabric-Client-Mod für **Minecraft 26.1.2**. Sie zeigt neben dem
-Fusion-Machine-GUI in Hypixel Skyblock live an, welche Fusionen der Shards in
-der Box tatsächlich Gewinn bringen.
+Fabric client-side mod for **Minecraft 26.1.2** that calculates profitable Attribute Fusions in Hypixel SkyBlock.
 
-Reine Anzeige. Die Mod klickt nichts, automatisiert nichts und schreibt
-nichts ins Spiel.
+Fusion 420 reads the shards currently visible in the Fusion Machine, evaluates available recipes, fetches public Bazaar prices, and displays the most profitable combinations.
 
-## Was sie tut
+It is display-only: the mod does not click, automate, move items, or send game actions.
 
-Sobald das Fusions-GUI offen ist, liest die Mod die Shards darin aus, schlägt
-für jedes Paar alle möglichen Fusionen nach, holt die Bazaar-Preise und
-rechnet aus, was übrig bleibt. Rechts neben dem GUI erscheint ein Kasten mit
-den besten Kombinationen:
+## Features
 
+- Live profit calculation using Hypixel Bazaar prices
+- Up to 6 profitable fusion results
+- Independent **Buy Price** and **Sell Price** selection
+- Buy modes: **Instant Buy**, **Buy Order**, **Self-Farmed**
+- Sell modes: **Instant Sell**, **Sell Order**
+- Special handling for Chameleon Shards and dynamic output IDs
+- Highlights required input shards when hovering a fusion result
+- Draggable overlay with saved position
+- Overlay is rendered behind Minecraft item tooltips
+- Warns when visible shards are missing from the current recipe data
+- Shows whether recipe data came from Online, Cache, or Bundled data
+- Automatic recipe-data refresh
+- Optional release-version check on startup
+- No account credentials, tokens, or API keys required
+- Fully client-side and display-only
+
+## Installation with Prism Launcher
+
+### 1. Create the instance
+
+1. Open Prism Launcher and select **Add Instance**.
+2. Choose **Vanilla** and select Minecraft **26.1.2**.
+3. Set the mod loader to **Fabric**.
+4. Give the instance a name and create it.
+5. If Prism asks for Java, use the supported Java version offered by Prism for this Minecraft release.
+
+### 2. Install Fabric API
+
+1. Right-click the instance and select **Edit**.
+2. Open **Mods**.
+3. Select **Download Mods**.
+4. Search for **Fabric API** from FabricMC.
+5. Install the version compatible with Minecraft 26.1.2.
+
+### 3. Install Fusion 420
+
+Once a release is available on Modrinth, install it through Prism's **Download Mods** dialog.
+
+For manual installation, download the latest release JAR from the [GitHub Releases](https://github.com/DjKamma420/Fusion_420/releases) page and add it under **Edit → Mods → Add File**.
+
+Do not install a `-sources.jar` file. That file contains source code rather than the playable mod.
+
+### 4. Start Minecraft
+
+1. Start the instance.
+2. Connect to Hypixel.
+3. Enter SkyBlock.
+4. Open a Fusion Machine.
+5. The Fusion 420 overlay appears next to the container.
+
+## In-Game Overlay
+
+The overlay shows the most profitable currently possible fusions based on the selected price modes.
+
+### Buy Price
+
+- **Instant Buy** — values the input shards at the current Bazaar instant-buy price.
+- **Buy Order** — values the input shards at the current Bazaar instant-sell price, representing a buy order.
+- **Self-Farmed** — input cost is zero. Use this when you already own or farmed the required shards.
+
+### Sell Price
+
+- **Instant Sell** — values the result at the current Bazaar instant-sell price.
+- **Sell Order** — values the result at the current Bazaar instant-buy price, representing a sell order.
+
+### Recommended setting for self-farmed shards
+
+If you farmed all required input shards yourself and only want to find the highest possible selling profit:
+
+```text
+Buy Price:  Self-Farmed
+Sell Price: Sell Order
 ```
-Fusion 420  -  Sofort
-1. 2x Grove + 5x Verdant
-   -> 1x Phanpyre
-   1,2M -> 1,8M
-   +612k  (+51%)
-2. ...
-Preise 12s alt  -  Rezepte: online
-M Modus wechseln  -  R neu laden
-```
 
-Kosten in Orange, Gewinn in Grün, Verlust in Rot.
+This sets input cost to zero and ranks results by absolute post-tax selling profit.
 
-## Einbauen in Prism Launcher
+### Moving the overlay
 
-### 1. Instanz anlegen
+Drag the **Fusion 420 title bar** to move the overlay. Its position is saved automatically.
 
-1. Prism Launcher öffnen, oben links auf **Add Instance**.
-2. Links **Vanilla** wählen, in der Versionsliste **26.1.2** anklicken.
-   Falls sie fehlt: oben rechts den Haken bei *Releases* setzen und die Liste
-   mit dem Knopf daneben neu laden.
-3. Rechts bei **Mod Loader** auf **Fabric** klicken und die vorgeschlagene
-   Version übernehmen (**0.19.3** oder neuer).
-4. Der Instanz oben einen Namen geben, z. B. `Skyblock 26.1.2`, dann **OK**.
+### Hover highlighting
 
-Fragt Prism nach Java, lass es die vorgeschlagene Fassung herunterladen —
-*Settings → Java → Auto-detect* bzw. den angebotenen Download.
+Hover over a fusion result in the overlay. Fusion 420 highlights the required input shards in the Fusion Machine so you can immediately see which items are needed.
 
-### 2. Fabric API installieren
+The overlay is drawn before Minecraft's item tooltip extraction, so normal item tooltips remain visible above the overlay.
 
-Ohne sie startet Fusion 420 nicht.
+## Configuration
 
-1. Die Instanz anklicken, rechts auf **Edit**.
-2. Links **Mods**, dann oben **Download mods**.
-3. Nach `Fabric API` suchen, den Treffer von *FabricMC* auswählen,
-   **Select mod for download**, dann unten **Review and confirm** → **OK**.
+The configuration file is created at:
 
-### 3. Fusion 420 installieren
+`config/fusion_420/einstellungen.json`
 
-**Weg A — über Modrinth** (sobald die Mod dort steht, siehe unten):
-im selben Dialog **Download mods** nach `Fusion 420` suchen und wie eben
-bestätigen.
+Important settings:
 
-**Weg B — Jar von Hand** (geht immer):
+| Key | Default | Description |
+|---|---:|---|
+| `einkaufsModus` | `SOFORT` | `SOFORT`, `ORDER`, or `GEFARMT` |
+| `verkaufsModus` | `SOFORT` | `SOFORT` or `ORDER` |
+| `bazaarSteuerProzent` | `1.25` | Bazaar selling tax percentage |
+| `mindestVolumenWoche` | `5000` | Minimum weekly Bazaar volume |
+| `anzahlEintraege` | `6` | Number of results shown |
+| `aktualisierungSekunden` | `60` | Minimum interval between Bazaar refreshes |
+| `titelMuster` | `(?i)fusion` | Regex used to identify the Fusion Machine GUI |
+| `nurAufHypixel` | `true` | Only show the overlay on Hypixel |
+| `nurContainerSlots` | `true` | Ignore the player's own inventory |
+| `overlayVersatzX` / `overlayVersatzY` | `6` / `0` | Saved overlay position offset |
+| `overlayBreite` | `230` | Overlay width |
+| `rezepteOnlineLaden` | `true` | Load fresh recipe data when available |
+| `aufAktualisierungPruefen` | `true` | Check for newer Fusion 420 releases |
 
-1. Auf der [Release-Seite](https://github.com/DjKamma420/Fusion_420/releases/latest)
-   die Datei `fusion_420-<version>.jar` herunterladen.
-   Nimm **nicht** die Datei mit `-sources` im Namen — das ist der Quelltext.
-2. In Prism: Instanz → **Edit** → **Mods** → **Add file** → das Jar auswählen.
-   Alternativ **Ordner öffnen** und das Jar in den geöffneten `mods`-Ordner
-   ziehen.
+Changes to the configuration take effect after restarting Minecraft.
 
-### 4. Starten und prüfen
+## Updates
 
-1. Instanz starten, mit deinem Konto einloggen.
-2. **Multiplayer → Add Server**, Adresse `mc.hypixel.net`, verbinden.
-3. Ins Skyblock, zur Fusion Machine bei Kysha in Galatea.
-4. GUI öffnen — rechts daneben erscheint der Kasten.
+Fusion 420 treats three types of updates separately.
 
-### Wenn nichts erscheint
+### Recipe data
 
-Der Reihe nach durchgehen:
+Recipe data is refreshed automatically. The repository's scheduled data workflow pulls current data from [SkyShards](https://github.com/Campionnn/SkyShards), while the mod downloads the latest available copy when it starts.
 
-1. **Läuft die Mod überhaupt?** Instanz → **Edit** → **Ordner öffnen** →
-   `logs/latest.log` öffnen und nach `Fusion 420` suchen. Es muss eine Zeile
-   `Fusion 420 0.1.0 bereit` geben. Fehlt sie, liegt das Jar nicht im
-   `mods`-Ordner oder die Fabric API fehlt.
-2. **Bist du auf Hypixel?** Die Mod schweigt auf anderen Servern. Zum Testen
-   `nurAufHypixel` auf `false` setzen (siehe unten).
-3. **Heißt das Menü anders?** Hypixel benennt Menüs gelegentlich um. In der
-   Konfiguration `titelMuster` anpassen — `(?i)fusion` trifft alles, was
-   „fusion" im Titel hat, unabhängig von Groß- und Kleinschreibung.
-   `(?i).` trifft jedes Menü, gut zum Ausprobieren.
+If the online request fails, Fusion 420 falls back to its local cache and finally to the bundled data inside the JAR.
 
-## Einstellen
+If a visible shard is not present in the recipe data, the overlay warns that the recipe data may be outdated.
 
-Beim ersten Start entsteht
-`einstellungen.json` im Ordner `config/fusion_420/` der Instanz
-(Instanz → **Edit** → **Ordner öffnen** → `config/fusion_420/`).
+### Mod updates
 
-Im Spiel wechselt **M** den Preismodus und **R** erzwingt einen neuen
-Preisabruf. Änderungen an der Datei greifen nach einem Neustart.
+Fusion 420 can check GitHub Releases on startup. If a newer release exists, the overlay reports it.
 
-| Schlüssel | Standard | Bedeutung |
+When distributed through Modrinth, Prism Launcher can handle the mod update through its normal mod update workflow.
+
+### Minecraft updates
+
+A new Minecraft version requires a compatible Fusion 420 build. The mod intentionally does not load on unsupported Minecraft versions.
+
+Porting to a new Minecraft release requires updating the Minecraft/Fabric dependencies, fixing API or mapping changes, running the full test suite, and testing the resulting JAR in-game before release.
+
+## Compatibility
+
+Fusion 420 uses Fabric screen events instead of injecting custom rendering logic into Minecraft's render path. Its container accessor only exposes GUI dimensions and does not change control flow.
+
+Compatibility with other GUI-heavy mods should still be verified on each supported Minecraft version.
+
+## Privacy and Network Access
+
+Fusion 420 is client-side and does not require a Minecraft account token, password, API key, or external authentication.
+
+It can contact these public endpoints:
+
+| Endpoint | Purpose | User data sent |
 |---|---|---|
-| `preisModus` | `SOFORT` | `SOFORT`, `ORDER` oder `GEMISCHT` — siehe unten |
-| `bazaarSteuerProzent` | `1.25` | Verkaufssteuer; sinkt mit Community-Upgrades |
-| `mindestVolumenWoche` | `5000` | Ausgaben mit weniger Wochenumsatz fallen raus |
-| `anzahlEintraege` | `3` | wie viele Kombinationen angezeigt werden |
-| `aktualisierungSekunden` | `60` | Abstand der Bazaar-Abfragen |
-| `titelMuster` | `(?i)fusion` | Regex auf den GUI-Titel |
-| `nurAufHypixel` | `true` | anderswo bleibt die Mod stumm |
-| `nurContainerSlots` | `true` | nur die Kiste, nicht das eigene Inventar |
-| `overlayVersatzX` / `-Y` / `overlayBreite` | `6` / `0` / `200` | Lage und Breite des Kastens |
-| `rezepteOnlineLaden` | `true` | Rezepte beim Start frisch holen |
-| `aufAktualisierungPruefen` | `true` | beim Start nach neueren Freigaben sehen |
-| `tasteModusWechsel` / `tasteAktualisieren` | `77` / `82` | GLFW-Tastencodes (M / R) |
+| `api.hypixel.net/v2/skyblock/bazaar` | Bazaar prices | None |
+| `raw.githubusercontent.com/.../fusion-data.json` | Recipe data | None |
+| `api.github.com/repos/.../releases/latest` | Version check | None |
 
-### Die drei Preismodi
+No player name, session token, password, or account identifier is intentionally transmitted by the mod.
 
-| Modus | Einkauf | Verkauf | wofür |
-|---|---|---|---|
-| `SOFORT` | Sofortkauf | Sofortverkauf | konservativ, sofort realisierbar |
-| `ORDER` | Kaufauftrag | Verkaufsangebot | größere Spanne, braucht Geduld und Order-Slots |
-| `GEMISCHT` | Sofortkauf | Verkaufsangebot | der übliche Mittelweg |
+See [SECURITY.md](SECURITY.md) for security reporting information and [THIRD_PARTY.md](THIRD_PARTY.md) for external components and data sources.
 
-Die Wahl verändert das Ergebnis stärker als alles andere. `SOFORT` ist der
-Gewinn, den man wirklich in der Hand hält.
+## Fair Play
 
-## Aktualisieren
+Fusion 420 is a display-only client mod. It reads information already visible in the game and public Bazaar data. It does not automate clicks, inventory actions, purchases, sales, or gameplay.
 
-Drei Dinge veralten unabhängig voneinander. Nur eines davon macht Arbeit.
+Always verify the current rules of the server before using any client modification.
 
-### Rezepte — läuft von allein
+## Development
 
-Hypixel ändert die Fusionstabelle mit jedem Inhaltsupdate. Deshalb steckt sie
-nicht fest im Jar: ein Arbeitsablauf zieht sie **wöchentlich** aus
-[SkyShards](https://github.com/Campionnn/SkyShards) nach, und die Mod holt sie
-bei jedem Start frisch aus diesem Repo. Kein Neuinstallieren nötig.
+Build the project with:
 
-Kommt kein Netz zustande, greift der lokale Zwischenspeicher, danach die im
-Jar mitgelieferte Fassung. Welche gerade gilt, steht im Overlay hinter
-„Rezepte:".
-
-Liegen im GUI Shards, die die Rezeptdaten nicht kennen, warnt das Overlay:
-
-```
-! 3 unbekannte Shards - Rezepte veraltet?
-```
-
-Dann ist entweder gerade ein Hypixel-Update erschienen und der wöchentliche
-Abgleich noch nicht gelaufen, oder es gab keinen Netzzugriff. Ein
-[Fehlerbericht](https://github.com/DjKamma420/Fusion_420/issues) hilft.
-
-### Die Mod selbst — ein Hinweis, ein Handgriff
-
-Beim Start sieht die Mod nach, ob es eine neuere Freigabe gibt. Falls ja,
-steht im Overlay:
-
-```
-! Version 0.2.0 verfuegbar
-```
-
-Zum Aktualisieren das neue Jar von der Release-Seite laden und das alte im
-`mods`-Ordner ersetzen. Über Modrinth installiert, erledigt das Prism selbst
-(*Edit → Mods → Check for updates*).
-
-Abschaltbar über `aufAktualisierungPruefen`.
-
-### Neue Minecraft-Version — braucht eine neue Fassung
-
-Die Mod erklärt in `fabric.mod.json` `"minecraft": "~26.1.2"`. Das heißt:
-sie läuft auf **26.1.x**, aber Fabric verweigert den Start auf 26.2. Das ist
-Absicht — Minecraft ändert seine Oberflächen-Schnittstellen regelmäßig, und
-eine Mod, die trotzdem startet, stürzt dann mitten im Spiel ab.
-
-Für eine neue Version:
-
-1. In `gradle.properties` `minecraft_version`, `loader_version`,
-   `loom_version` und `fabric_api_version` auf die Werte von
-   [fabricmc.net/develop](https://fabricmc.net/develop) heben.
-2. In `fabric.mod.json` `minecraft` und ggf. `java` anpassen.
-3. `./gradlew build` — was sich geändert hat, sagt der Übersetzer.
-   Erfahrungsgemäß trifft es zuerst `gui/Overlay` und `mixin/`.
-4. Tag `vX.Y.Z` setzen; der Rest läuft von allein.
-
-Wie groß solche Brüche sein können, zeigt 26.1: dort verschwanden die
-Mappings, `HandledScreen` hieß plötzlich `AbstractContainerScreen`, und die
-gesamte Zeichen-Schnittstelle wurde auf einen Auslesedurchgang umgestellt.
-
-## Verträglich mit anderen Mods
-
-Gezeichnet wird im Ereignis `ScreenEvents.afterExtract` der Fabric API, nicht
-durch einen eigenen Eingriff in den Renderweg. Minecraft 26.1 baut die
-Oberfläche in einem Auslesedurchgang zusammen; `afterExtract` ist dessen Ende
-und liegt damit über allem — Hintergrund, Gegenständen, Text und Tooltips. An
-dasselbe Ereignis können sich beliebig viele Mods hängen, dort geht niemandem
-etwas verloren. Der einzige Mixin ist ein `@Accessor` auf die Maße des GUI —
-der ändert keinen Kontrollfluss und kann mit nichts kollidieren.
-
-Getestet werden sollte trotzdem gegen SkyHanni und NEU, sobald beide für
-26.1.2 vorliegen.
-
-## Was die Mod über dich preisgibt
-
-Nichts. Sie liest das GUI, das ohnehin auf dem Bildschirm steht, und ruft drei
-öffentliche Adressen ab:
-
-| Adresse | wofür | was mitgeht |
-|---|---|---|
-| `api.hypixel.net/v2/skyblock/bazaar` | Preise | nichts, kein Schlüssel nötig |
-| `raw.githubusercontent.com/.../fusion-data.json` | Rezepte | nichts |
-| `api.github.com/repos/.../releases/latest` | Versionshinweis | nichts |
-
-Kein Konto, kein Spielername, keine Kennung. Alles außer dem Bazaar-Abruf
-lässt sich abschalten (`rezepteOnlineLaden`, `aufAktualisierungPruefen`).
-
-## Regeln
-
-Hypixel erlaubt Mods, die nur anzeigen. Diese hier liest ausschließlich das
-GUI und öffentliche Marktdaten. Sie klickt nicht, bewegt nichts und tut
-nichts, was ein Mensch nicht auch tun könnte. Automatisierung wäre ein
-Bannrund — die ist hier bewusst nicht drin.
-
-## Selbst bauen
-
-```
+```bash
 ./gradlew build
 ```
 
-Braucht **JDK 25**. Näheres in [CONTRIBUTING.md](CONTRIBUTING.md).
+Run the unit tests with:
 
-## Lizenz
+```bash
+./gradlew test
+```
 
-[MIT](LICENSE) · Rezeptdaten aus [SkyShards](https://github.com/Campionnn/SkyShards)
-(MIT), siehe [THIRD_PARTY.md](THIRD_PARTY.md).
+The project requires **JDK 25** for the current Minecraft target.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
+
+## License
+
+Fusion 420 is licensed under the MIT License. See [LICENSE](LICENSE).
+
+Recipe data is sourced from [SkyShards](https://github.com/Campionnn/SkyShards) under its own license; see [THIRD_PARTY.md](THIRD_PARTY.md).
+
+Fusion 420 is an independent project and is not affiliated with Hypixel or Mojang Studios.
