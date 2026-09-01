@@ -27,6 +27,10 @@
       `maven.fabricmc.net` vom Egress-Proxy gesperrt).
 - [x] CI meldet jetzt die Testzahl und bricht ab, wenn null Tests laufen —
       sonst hätte ein leerer Lauf grün gemeldet.
+- [x] CI prüft das gebaute Jar auf Ressourcen, Klassen, Mod-Kennung, ersetzte
+      Version und Vollständigkeit der Rezeptdaten. Nötig, weil sich Artefakte
+      aus dieser Umgebung nicht herunterladen lassen (Blob-Host gesperrt) —
+      die Prüfung muss also dort laufen, wo das Jar entsteht.
 
 ## Offen
 
