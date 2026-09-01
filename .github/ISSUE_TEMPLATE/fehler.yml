@@ -1,31 +1,31 @@
-name: Fehler melden
-description: Etwas funktioniert nicht wie beschrieben
-labels: ["fehler"]
+name: Bug Report
+description: Report something that does not work as expected
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Danke fürs Melden. Die Angaben unten sparen mehrere Rückfragen.
+        Thanks for reporting a bug. The information below helps avoid follow-up questions.
   - type: input
     id: version
     attributes:
-      label: Version von Fusion 420
-      description: Steht im Log direkt nach "Fusion 420 ... bereit".
+      label: Fusion 420 version
+      description: The version is shown in the log after "Fusion 420 ... ready".
       placeholder: "0.1.0"
     validations:
       required: true
   - type: input
     id: minecraft
     attributes:
-      label: Minecraft- und Loader-Version
+      label: Minecraft and loader version
       placeholder: "26.1.2, Fabric 0.19.3"
     validations:
       required: true
   - type: textarea
     id: was
     attributes:
-      label: Was ist passiert?
-      description: Was hast du erwartet, was kam stattdessen?
+      label: What happened?
+      description: What did you expect, and what happened instead?
     validations:
       required: true
   - type: textarea
@@ -33,12 +33,12 @@ body:
     attributes:
       label: Log
       description: >
-        Aus dem Instanzordner die neueste Datei aus logs/. Zeilen mit
-        "Fusion 420" sind die interessanten. Bitte vorher durchsehen —
-        Logs können Spielernamen enthalten.
+        Paste the relevant part of the latest file from logs/. Lines containing
+        "Fusion 420" are usually useful. Review the log first because it may
+        contain player names or other local information.
       render: text
   - type: textarea
     id: mods
     attributes:
-      label: Andere Mods
-      description: Besonders andere Oberflächen-Mods wie SkyHanni oder NEU.
+      label: Other mods
+      description: Especially GUI-heavy mods such as SkyHanni or NEU.
