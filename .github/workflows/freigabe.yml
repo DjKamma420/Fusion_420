@@ -1,0 +1,75 @@
+# Haengt bei einem Tag wie v0.1.0 das gebaute Jar an ein GitHub-Release und
+# laedt es zu Modrinth hoch, sobald die noetigen Geheimnisse hinterlegt sind.
+name: freigabe
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  freigeben:
+    runs-on: ubuntu-24.04
+    env:
+      MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+      MODRINTH_ID: ${{ vars.MODRINTH_ID }}
+    steps:
+      - name: auschecken
+        uses: actions/checkout@v4
+
+      - name: gradle-wrapper pruefen
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: jdk 25 einrichten
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
+      - name: bauen und testen
+        run: ./gradlew build --stacktrace
+
+      - name: version ermitteln
+        id: version
+        run: echo "nummer=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: github-release anlegen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "Fusion 420 ${{ steps.version.outputs.nummer }}" \
+            --generate-notes \
+            build/libs/*.jar
+
+      # Modrinth ist der Weg, ueber den Prism Launcher die Mod direkt findet.
+      # Ohne hinterlegtes Geheimnis wird der Schritt still uebersprungen.
+      - name: zu modrinth hochladen
+        if: env.MODRINTH_TOKEN != '' && env.MODRINTH_ID != ''
+        run: |
+          JAR=$(ls build/libs/*.jar | grep -v -- '-sources' | head -n1)
+          echo "lade hoch: $JAR"
+          DATEN=$(jq -n \
+            --arg name "Fusion 420 ${{ steps.version.outputs.nummer }}" \
+            --arg nummer "${{ steps.version.outputs.nummer }}" \
+            --arg projekt "$MODRINTH_ID" \
+            '{
+              name: $name,
+              version_number: $nummer,
+              changelog: "Siehe GitHub-Release.",
+              dependencies: [],
+              game_versions: ["26.1.2"],
+              version_type: "release",
+              loaders: ["fabric"],
+              featured: true,
+              project_id: $projekt,
+              file_parts: ["datei"],
+              primary_file: "datei"
+            }')
+          curl --fail-with-body -sS -X POST https://api.modrinth.com/v2/version \
+            -H "Authorization: $MODRINTH_TOKEN" \
+            -F "data=$DATEN;type=application/json" \
+            -F "datei=@$JAR;type=application/java-archive"
