@@ -16,7 +16,10 @@ public final class Einstellungen {
 	public String titelMuster = "(?i)fusion";
 	public boolean nurAufHypixel = true;
 	public boolean nurContainerSlots = true;
+	/** Altkompatibles Feld; neue Konfiguration nutzt Einkauf/Verkauf getrennt. */
 	public String preisModus = "SOFORT";
+	public String einkaufsModus = "SOFORT";
+	public String verkaufsModus = "SOFORT";
 	public double bazaarSteuerProzent = 1.25;
 	public long mindestVolumenWoche = 5000L;
 	public int anzahlEintraege = 6;
@@ -52,6 +55,16 @@ public final class Einstellungen {
 				e.nurAufHypixel = flagge(o, "nurAufHypixel", e.nurAufHypixel);
 				e.nurContainerSlots = flagge(o, "nurContainerSlots", e.nurContainerSlots);
 				e.preisModus = text(o, "preisModus", e.preisModus);
+				boolean neueMarktWahl = o.has("einkaufsModus") || o.has("verkaufsModus");
+				e.einkaufsModus = text(o, "einkaufsModus", e.einkaufsModus);
+				e.verkaufsModus = text(o, "verkaufsModus", e.verkaufsModus);
+				if (!neueMarktWahl) {
+					switch (e.preisModus.toUpperCase()) {
+						case "ORDER" -> { e.einkaufsModus = "ORDER"; e.verkaufsModus = "ORDER"; }
+						case "GEMISCHT" -> { e.einkaufsModus = "SOFORT"; e.verkaufsModus = "ORDER"; }
+						default -> { e.einkaufsModus = "SOFORT"; e.verkaufsModus = "SOFORT"; }
+					}
+				}
 				e.bazaarSteuerProzent = kommazahl(o, "bazaarSteuerProzent", e.bazaarSteuerProzent);
 				e.mindestVolumenWoche = (long) kommazahl(o, "mindestVolumenWoche", e.mindestVolumenWoche);
 				e.anzahlEintraege = (int) kommazahl(o, "anzahlEintraege", e.anzahlEintraege);
@@ -75,7 +88,8 @@ public final class Einstellungen {
 		o.addProperty("titelMuster", titelMuster);
 		o.addProperty("nurAufHypixel", nurAufHypixel);
 		o.addProperty("nurContainerSlots", nurContainerSlots);
-		o.addProperty("preisModus", preisModus);
+		o.addProperty("einkaufsModus", einkaufsModus);
+		o.addProperty("verkaufsModus", verkaufsModus);
 		o.addProperty("bazaarSteuerProzent", bazaarSteuerProzent);
 		o.addProperty("mindestVolumenWoche", mindestVolumenWoche);
 		o.addProperty("anzahlEintraege", anzahlEintraege);
@@ -98,7 +112,7 @@ public final class Einstellungen {
 	private void gesundschrumpfen() {
 		anzahlEintraege = Math.clamp(anzahlEintraege, 1, 10);
 		aktualisierungSekunden = Math.clamp(aktualisierungSekunden, 10, 3600);
-		overlayBreite = Math.clamp(overlayBreite, 120, 400);
+		overlayBreite = Math.clamp(overlayBreite, 180, 500);
 		bazaarSteuerProzent = Math.clamp(bazaarSteuerProzent, 0.0, 25.0);
 		mindestVolumenWoche = Math.max(0L, mindestVolumenWoche);
 	}
