@@ -2,11 +2,11 @@ package de.kamma.fusion420.rechner;
 
 import de.kamma.fusion420.markt.Preis;
 
-/** Preisbasis fuer die eingesetzten Shards. */
+/** Price basis for the input shards. */
 public enum Einkaufsmodus {
-	SOFORT("Sofort", "Sofort kaufen"),
-	ORDER("Order", "Kauforder"),
-	GEFARMT("Gefarmt", "Eigene Shards (0 Coins)");
+	SOFORT("Instant Buy", "Buy instantly"),
+	ORDER("Buy Order", "Buy via order"),
+	GEFARMT("Self-Farmed", "Own shards (0 coins)");
 
 	private final String anzeige;
 	private final String detail;
