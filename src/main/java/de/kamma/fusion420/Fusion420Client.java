@@ -14,13 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 
-/**
- * Einstiegspunkt. Laedt die Konfiguration, stoesst Rezeptabruf und
- * Versionspruefung an und haengt das Overlay an die Bildschirm-Ereignisse.
- *
- * <p>Nichts davon blockiert den Start: die Rezepte kommen im Hintergrund,
- * die Preise sowieso erst, wenn ein Fusions-GUI offen ist.
- */
+/** Client entry point. Loads configuration, data, version checks, and the overlay. */
 public final class Fusion420Client implements ClientModInitializer {
 
 	public static final String MOD_ID = "fusion_420";
@@ -43,7 +37,7 @@ public final class Fusion420Client implements ClientModInitializer {
 		Rezeptquelle.laden(einstellungen, ordner.resolve("fusion-data.json"))
 				.whenComplete((buch, fehler) -> {
 					if (fehler != null) {
-						LOG.error("Rezepte konnten nicht geladen werden", fehler);
+						LOG.error("Failed to load recipe data", fehler);
 					} else {
 						rezeptbuch = buch;
 					}
@@ -54,7 +48,7 @@ public final class Fusion420Client implements ClientModInitializer {
 					.thenAccept(fassung -> {
 						neuereFassung = fassung;
 						if (fassung != null) {
-							LOG.info("Neuere Fassung verfuegbar: {}", fassung);
+							LOG.info("Newer release available: {}", fassung);
 						}
 					});
 		}
@@ -66,8 +60,8 @@ public final class Fusion420Client implements ClientModInitializer {
 				() -> neuereFassung,
 				() -> einstellungen.speichern(konfig)));
 
-		LOG.info("Fusion 420 {} bereit — Titelmuster \"{}\", Modus {}",
-				eigeneVersion(), einstellungen.titelMuster, einstellungen.preisModus);
+		LOG.info("Fusion 420 {} ready — title pattern \"{}\", buy mode {}, sell mode {}",
+				eigeneVersion(), einstellungen.titelMuster, einstellungen.einkaufsModus, einstellungen.verkaufsModus);
 	}
 
 	private static String eigeneVersion() {
