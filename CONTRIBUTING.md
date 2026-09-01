@@ -1,52 +1,47 @@
-# Mitarbeiten
+# Contributing
 
-## Bauen
+## Build
 
-```
+```bash
 ./gradlew build
 ```
 
-Braucht **JDK 25**. Das Jar landet in `build/libs/`.
+The current target requires **JDK 25**. The JAR is written to `build/libs/`.
 
-## Prüfen
+## Test
 
-```
+```bash
 ./gradlew test
 ```
 
-Der Kern — Rezeptindex, Gewinnrechnung, Bazaar-Auswertung, Versionsvergleich —
-kommt bewusst ohne Minecraft aus und ist deshalb ohne laufendes Spiel prüfbar.
-Was Minecraft anfasst (`gui/`, `mixin/`), prüft erst der Build in der CI und
-danach der Blick ins Spiel.
+The core packages — recipe indexing, profit calculation, Bazaar evaluation, and version comparison — intentionally do not depend on Minecraft and can therefore be tested without a running game.
 
-Die CI weist die Testzahl aus und bricht ab, wenn null Tests liefen — ein
-grüner Lauf ohne ausgeführte Tests wäre wertlos. Sie öffnet außerdem das
-gebaute Jar und prüft Pflichteinträge, Mod-Kennung und eingesetzte Version.
+Minecraft-facing code (`gui/`, `mixin/`) is validated by the CI build and must additionally be tested in-game before a release.
 
-## Aufbau
+CI reports the executed test count and fails if zero tests ran. It also opens the built JAR and validates required entries, the mod identifier, the target version, and bundled recipe data.
 
-| Paket | Inhalt |
+## Project structure
+
+| Package | Purpose |
 |---|---|
-| `daten/` | Shards und Rezepte, Index, Beschaffung |
-| `markt/` | Preisquellen, Bazaar, Zwischenspeicher |
-| `rechner/` | Gewinnrechnung, Preismodi — ohne Minecraft |
-| `gui/` | Erkennung des Fusions-GUI, Overlay |
-| `mixin/` | ein einziger `@Accessor` auf die Maße des GUI |
-| `wartung/` | Prüfung auf neuere Freigaben |
+| `daten/` | Shards, recipes, indexing, and data acquisition |
+| `markt/` | Price sources, Bazaar, and caching |
+| `rechner/` | Profit calculation and price modes, independent of Minecraft |
+| `gui/` | Fusion Machine detection, overlay, and interaction |
+| `mixin/` | Single `@Accessor` exposing container GUI dimensions |
+| `wartung/` | Release-version checking |
 
-## Regeln
+## Development rules
 
-1. **Deutsche Bezeichner.** Kommentare erklären das Warum, nicht das Was.
-2. **`rechner/` und `daten/` bleiben frei von Minecraft-Importen.** Das ist
-   der Teil, der sich ohne Spiel prüfen lässt; er soll es bleiben.
-3. **Kein `@Inject` in den Renderweg.** Gezeichnet wird über `ScreenEvents`.
-   Ein eigener Eingriff in `AbstractContainerScreen` kollidiert mit anderen
-   Oberflächen-Mods — das ist der Hauptgrund für den jetzigen Aufbau.
-4. **Nichts automatisieren.** Die Mod zeigt an. Klicks, Bewegungen oder
-   Eingaben zu simulieren wäre ein Bannrund und kommt nicht rein.
-5. **Rezeptdaten nicht von Hand ändern.** `src/main/resources/daten/fusion-data.json`
-   zieht der Arbeitsablauf `daten-sync` nach.
+1. **Keep the core independent of Minecraft.** `rechner/` and `daten/` should remain free of Minecraft imports wherever possible.
+2. **Do not inject into the render path.** Use Fabric screen events instead of custom render injections.
+3. **Do not automate gameplay.** Fusion 420 is a display-only tool. Do not add simulated clicks, inventory movement, purchases, or other gameplay automation.
+4. **Do not manually edit generated recipe data** unless the data source itself requires a deliberate change. The `daten-sync` workflow refreshes `src/main/resources/daten/fusion-data.json`.
+5. **Add tests for calculation and data logic.** Keep Minecraft-specific behavior isolated so the core remains easy to test.
+6. **Keep public documentation and user-facing text in English.**
 
-## Auf eine neue Minecraft-Version heben
+## Porting to a new Minecraft version
 
-Siehe den Abschnitt "Neue Minecraft-Version" in der [README](README.md).
+See the **Minecraft Updates** section in the [README](README.md).
+
+Before publishing a port, run the complete test suite, verify the built JAR, and perform an in-game compatibility test.
