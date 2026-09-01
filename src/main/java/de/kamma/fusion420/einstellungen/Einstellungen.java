@@ -23,7 +23,7 @@ public final class Einstellungen {
 	public int aktualisierungSekunden = 60;
 	public int overlayVersatzX = 6;
 	public int overlayVersatzY = 0;
-	public int overlayBreite = 200;
+	public int overlayBreite = 230;
 	public boolean rezepteOnlineLaden = true;
 	public String rezeptQuelleUrl = "https://raw.githubusercontent.com/DjKamma420/Fusion_420/main/src/main/resources/daten/fusion-data.json";
 	public boolean aufAktualisierungPruefen = true;
