@@ -1,23 +1,24 @@
-# Sicherheit
+# Security
 
-## Unterstützte Versionen
+## Supported Versions
 
-| Version | Sicherheitsupdates |
+| Version | Security updates |
 |---|---|
-| `main` | Ja |
-| veröffentlichte Versionen | nach aktuellem Release-Stand |
+| `main` | Yes |
+| Released versions | According to the current release policy |
 
-## Sicherheitsprobleme melden
+## Reporting a Security Issue
 
-Bitte keine sensiblen Sicherheitsprobleme als öffentliches GitHub-Issue posten.
-Verwende für vertrauliche Meldungen die auf GitHub angebotene Funktion für private Vulnerability Reports, sofern sie für dieses Repository aktiviert ist.
+Do not publish sensitive security issues in a public GitHub issue.
+Use GitHub's private vulnerability reporting feature when it is enabled for this repository.
 
-Fusion 420 benötigt keine Minecraft-Login-Daten, Session-Tokens, Passwörter oder privaten API-Schlüssel.
+Fusion 420 does not require Minecraft login credentials, session tokens, passwords, or private API keys.
 
-## Grundsätze
+## Security Principles
 
-- Keine Zugangsdaten im Repository.
-- Keine persönlichen Daten in Quelltext, Konfiguration oder Logs absichtlich speichern.
-- Externe Datenquellen werden mit Timeouts und Validierung behandelt.
-- Eingehende Rezeptdaten werden vor der Verwendung geprüft.
-- Release-Artefakte werden vor Veröffentlichung gebaut und validiert.
+- No credentials in the repository.
+- No intentional storage of personal data in source code, configuration, or logs.
+- External requests use timeouts and response validation.
+- Incoming recipe data is validated before use.
+- Release artifacts are built and validated before publication.
+- User-facing documentation and security guidance are kept in English.
