@@ -1,79 +1,33 @@
-# Fusion 420 — Stand
+# Fusion 420 — Status
 
-## Erledigt
+## Completed
 
-- [x] Projektgerüst: `build.gradle`, `settings.gradle`, `gradle.properties`,
-      Gradle-Wrapper 9.5.1 (übernommen aus `fabric-example-mod` @ 26.1.2)
-- [x] `fabric.mod.json` + `fusion_420.mixins.json` (`compatibilityLevel: JAVA_25`)
-- [x] Versionen gegen den echten `fabric-example-mod` @ Tag 26.1.2 geprüft:
-      MC 26.1.2 · Loader 0.19.3 · Loom 1.17-SNAPSHOT · Fabric API 0.155.2+26.1.2 · Java 25
-- [x] `daten/` — Rezeptbuch mit sortiertem `long`-Index (130 554 Zeilen, ~1 MB,
-      Aufbau 134 ms, 1035 Paarabfragen in 3 ms)
-- [x] `markt/` — Bazaar über die schlüssellose Hypixel-API, asynchron, mit Cache
-- [x] `rechner/` — Gewinnrechnung, drei Preismodi, Steuer, Volumenfilter
-- [x] `gui/` — Overlay über `ScreenEvents.afterExtract`
-- [x] `mixin/` — ein `@Accessor` auf `leftPos` / `topPos` / `imageWidth`
-- [x] Render-API gegen den Quelltext von `FabricMC/fabric` Branch `26.1` belegt
-      (nicht geraten): `afterExtract`, `GuiGraphicsExtractor`, `text(...)`,
-      `AfterKeyPress(Screen, KeyEvent)`
-- [x] 23 Tests, lokal grün — inklusive Parsen der echten 3,1-MB-Datendatei
-- [x] Workflows `bauen`, `freigabe`, `daten-sync`
-- [x] README, LICENSE (MIT), THIRD_PARTY (SkyShards, MIT)
+- [x] Project scaffold: `build.gradle`, `settings.gradle`, `gradle.properties`, Gradle Wrapper 9.5.1
+- [x] `fabric.mod.json` and `fusion_420.mixins.json` with Java 25 compatibility
+- [x] Verified Minecraft 26.1.2, Loader 0.19.3, Loom 1.17-SNAPSHOT, Fabric API 0.155.2+26.1.2, and Java 25
+- [x] `daten/` — recipe book with sorted `long` index and bundled recipe data
+- [x] `markt/` — asynchronous Bazaar access through the keyless public Hypixel API with caching
+- [x] `rechner/` — profit calculation, buy/sell modes, tax, and volume filtering
+- [x] `gui/` — Fusion Machine detection, overlay, dropdown controls, hover highlighting, and drag-and-drop positioning
+- [x] `mixin/` — single `@Accessor` for container GUI dimensions
+- [x] Render API verified against the Fabric 26.1 source rather than guessed
+- [x] Unit tests for recipe indexing, bundled data, Bazaar evaluation, profit calculation, and version comparison
+- [x] Workflows for build, release, and recipe-data synchronization
+- [x] README, MIT license, third-party notices, security policy, contribution guide, issue templates, Dependabot, and editor configuration
+- [x] Startup release-version check and outdated-recipe warning
+- [x] Recipe-source indicator: online, cache, or bundled
+- [x] English user-facing text and public documentation
 
-- [x] Repo `DjKamma420/Fusion_420` angelegt (von Hand — die GitHub-App dieser
-      Sitzung darf keine Repos erstellen) und bespielt
-- [x] **CI grün beim ersten Lauf.** Damit ist belegt, dass der Gradle-Build
-      übersetzt — das ließ sich hier nicht prüfen (Java 21 statt 25,
-      `maven.fabricmc.net` vom Egress-Proxy gesperrt).
-- [x] CI meldet jetzt die Testzahl und bricht ab, wenn null Tests laufen —
-      sonst hätte ein leerer Lauf grün gemeldet.
-- [x] CI prüft das gebaute Jar auf Ressourcen, Klassen, Mod-Kennung, ersetzte
-      Version und Vollständigkeit der Rezeptdaten. Nötig, weil sich Artefakte
-      aus dieser Umgebung nicht herunterladen lassen (Blob-Host gesperrt) —
-      die Prüfung muss also dort laufen, wo das Jar entsteht.
+## Open
 
-- [x] Prüfung auf neuere Freigaben beim Start, mit Hinweis im Overlay
-- [x] Warnung im Overlay bei Shards, die die Rezeptdaten nicht kennen —
-      so wird ein Hypixel-Update sichtbar, bevor die Mod falsch rechnet
-- [x] Herkunft der Rezeptdaten im Overlay (online / Zwischenspeicher /
-      mitgeliefert)
-- [x] Prism-Anleitung, Aktualisierungswege und Portierungsanleitung in der
-      README; CHANGELOG, CONTRIBUTING, Fehlervorlagen, Dependabot, editorconfig
+- [ ] **Remove the real name and private email address from Git history.** Existing historical commits still contain the old author identity. This requires rewriting the history and force-updating `main`. GitHub account email privacy must also be enabled before making further local commits.
+- [ ] **Modrinth** — create the project and configure the repository's `MODRINTH_TOKEN` secret and `MODRINTH_ID` variable. The release workflow already contains the upload stage, but it remains untested until the credentials are configured.
+- [ ] **In-game validation** — verify the exact Fusion Machine title, shard-name matching, Chameleon behavior, tooltip layering, hover highlighting, draggable overlay, and price-mode calculations on a live server.
 
-## Offen
+## Intentionally omitted
 
-- [ ] **Klarname und private Adresse aus der Historie entfernen.** Alle sechs
-      Commits tragen bislang `Lars Anton Rossbach <l.anton.rossbach@gmail.com>`,
-      auch der von Hand angelegte erste. Erfordert Umschreiben und einen
-      erzwungenen Push — steht aus, bis freigegeben. Damit es nicht erneut
-      passiert, muss zusätzlich in den GitHub-Kontoeinstellungen
-      "Keep my email addresses private" an und der Profilname geprüft werden.
-- [ ] **Modrinth** — Projekt anlegen, dann `MODRINTH_TOKEN` (Secret) und
-      `MODRINTH_ID` (Variable) im Repo hinterlegen. Erst danach greift der
-      Upload-Schritt in `freigabe.yml`; er ist bislang ungetestet.
-- [ ] **Im Spiel prüfen.** Zwei Dinge lassen sich von außen nicht klären:
-      der genaue Titel des Fusion-Machine-GUIs (deshalb Regex in der Konfig,
-      Standard `(?i)fusion`) und ob Hypixel die Shards exakt als
-      `<Name> Shard` benennt (Namensabgleich gegen die 321 Namen).
+**Auction House support.** The current recipe data maps all supported shards to Bazaar identifiers, so an Auction House source is unnecessary for the current design. The price-source interface is kept separate so another source can be added later without changing the calculation core.
 
-## Bewusst weggelassen
+## Known limitations of CI
 
-**Auktionshaus.** War im Plan vorgesehen, ist aber nachweislich überflüssig:
-alle 321 Shards der Rezeptdatei haben eine `SHARD_*`-Bazaar-Kennung, keiner
-läuft übers AH. Dazu kam, dass `sky.coflnet.com` vom Egress-Proxy dieser
-Sitzung gesperrt ist — ich hätte die Schnittstelle nicht prüfen können und
-hätte geratenen Code ausgeliefert. Stattdessen liegt die Naht bereit:
-`markt/Preisquelle` ist eine Schnittstelle, `Bazaar` ihre einzige
-Umsetzung. Eine zweite Quelle lässt sich ergänzen, ohne den Rechner
-anzufassen.
-
-## Erledigte Restrisiken
-
-`AbstractContainerMenu#slots`, `Minecraft#getCurrentServer()` und
-`ServerData#ip` waren gegen keinen echten 26.1-Quelltext belegbar. Der
-erfolgreiche CI-Build beweist, dass es diese Namen gibt — sonst hätte der
-Übersetzer sie angemahnt.
-
-Was ein grüner Build **nicht** beweist: dass das Overlay im Spiel an der
-richtigen Stelle erscheint und dass die Shard-Namen zu Hypixels Schreibweise
-passen. Das entscheidet erst der erste Blick ins laufende Spiel.
+A green build proves that the project compiles, tests execute, and the JAR structure is valid. It does not prove that the overlay looks correct at runtime or that Hypixel's live GUI text and item metadata still match the current data. Those require an in-game test.
