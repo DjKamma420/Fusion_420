@@ -1,0 +1,14 @@
+{
+	"required": true,
+	"package": "de.kamma.fusion420.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"ContainerScreenZugriff"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

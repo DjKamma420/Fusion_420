@@ -1,0 +1,54 @@
+# Zieht die Fusionsrezepte woechentlich nach. Hypixel aendert die Tabelle mit
+# jedem Inhaltsupdate; ohne das waere die Mod nach wenigen Wochen falsch.
+# Uebernommen wird nur, was die Tests besteht.
+name: daten-sync
+
+on:
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  nachziehen:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: auschecken
+        uses: actions/checkout@v4
+
+      - name: jdk 25 einrichten
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
+      - name: rezepte holen
+        run: |
+          curl --fail-with-body -sS -o /tmp/fusion-data.json \
+            https://raw.githubusercontent.com/Campionnn/SkyShards/main/public/fusion-data.json
+          jq -e '.shards and .recipes' /tmp/fusion-data.json > /dev/null
+
+      - name: uebernehmen wenn geaendert
+        id: pruefen
+        run: |
+          if cmp -s /tmp/fusion-data.json src/main/resources/daten/fusion-data.json; then
+            echo "geaendert=nein" >> "$GITHUB_OUTPUT"
+          else
+            cp /tmp/fusion-data.json src/main/resources/daten/fusion-data.json
+            echo "geaendert=ja" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: tests gegen die neuen daten
+        if: steps.pruefen.outputs.geaendert == 'ja'
+        run: ./gradlew test --stacktrace
+
+      - name: einchecken
+        if: steps.pruefen.outputs.geaendert == 'ja'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add src/main/resources/daten/fusion-data.json
+          git commit -m 'Rezeptdaten nachgezogen (SkyShards)'
+          git push

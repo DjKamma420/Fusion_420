@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"id": "fusion_420",
+	"version": "${version}",
+	"name": "Fusion 420",
+	"description": "Zeigt neben dem Fusion-Machine-GUI in Hypixel Skyblock live an, welche Fusionen der vorhandenen Attribute-Shards Gewinn bringen. Reine Anzeige, keine Automatisierung.",
+	"authors": [
+		"DjKamma420"
+	],
+	"contact": {
+		"homepage": "https://github.com/DjKamma420/fusion_420",
+		"sources": "https://github.com/DjKamma420/fusion_420",
+		"issues": "https://github.com/DjKamma420/fusion_420/issues"
+	},
+	"license": "MIT",
+	"icon": "assets/fusion_420/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"de.kamma.fusion420.Fusion420Client"
+		]
+	},
+	"mixins": [
+		{
+			"config": "fusion_420.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.1.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
