@@ -17,73 +17,55 @@ import java.util.Set;
 
 /** Erkennt das Fusions-GUI und liest heraus, welche Shards darin liegen. */
 public final class Fusionserkennung {
-
-	/** Spielerinventar plus Schnellleiste am Ende jedes Kistenmenues. */
 	private static final int EIGENE_SLOTS = 36;
 
-	private Fusionserkennung() {
-	}
+	private Fusionserkennung() { }
 
-	/**
-	 * Was im GUI gefunden wurde.
-	 *
-	 * @param erkannt   aufgeloeste Shards, ohne Doppelte
-	 * @param unbekannt Anzahl verschiedener Gegenstaende, die wie ein Shard
-	 *                  heissen, aber in den Rezeptdaten fehlen. Genau so
-	 *                  macht sich ein Hypixel-Update bemerkbar, bevor die
-	 *                  Rezeptdatei nachgezogen ist.
-	 */
 	public record Fund(List<Shard> erkannt, int unbekannt) {
-
 		public static final Fund LEER = new Fund(List.of(), 0);
 	}
 
 	public static boolean aufHypixel(Minecraft mc) {
-		if (mc == null) {
-			return false;
-		}
+		if (mc == null) return false;
 		ServerData server = mc.getCurrentServer();
-		return server != null
-				&& server.ip != null
-				&& server.ip.toLowerCase(Locale.ROOT).contains("hypixel.net");
+		return server != null && server.ip != null && server.ip.toLowerCase(Locale.ROOT).contains("hypixel.net");
 	}
 
-	/**
-	 * Die Shards im offenen Menue.
-	 *
-	 * @param nurKiste wenn wahr, bleibt das eigene Inventar aussen vor
-	 */
 	public static Fund shards(AbstractContainerScreen<?> bildschirm, Rezeptbuch buch, boolean nurKiste) {
-		if (buch == null || bildschirm == null || bildschirm.getMenu() == null) {
-			return Fund.LEER;
-		}
+		if (buch == null || bildschirm == null || bildschirm.getMenu() == null) return Fund.LEER;
 		List<Slot> slots = bildschirm.getMenu().slots;
 		int grenze = nurKiste ? Math.max(0, slots.size() - EIGENE_SLOTS) : slots.size();
-
 		Map<String, Shard> gefunden = new LinkedHashMap<>();
 		Set<String> unbekannt = new HashSet<>();
-
 		for (int i = 0; i < grenze; i++) {
 			ItemStack stapel = slots.get(i).getItem();
-			if (stapel.isEmpty()) {
-				continue;
-			}
+			if (stapel.isEmpty()) continue;
 			String name = stapel.getHoverName().getString();
 			Shard shard = buch.nachAnzeigename(name);
-			if (shard != null) {
-				gefunden.putIfAbsent(shard.schluessel(), shard);
-			} else if (heisstWieEinShard(name)) {
-				unbekannt.add(Rezeptbuch.normalisiere(name));
-			}
+			if (shard != null) gefunden.putIfAbsent(shard.schluessel(), shard);
+			else if (heisstWieEinShard(name)) unbekannt.add(Rezeptbuch.normalisiere(name));
 		}
 		return new Fund(List.copyOf(gefunden.values()), unbekannt.size());
 	}
 
-	/** Endet der Anzeigename auf "Shard", ohne dass die Daten ihn kennen? */
-	static boolean heisstWieEinShard(String roh) {
-		if (roh == null) {
-			return false;
+	/** Liefert die sichtbaren Slotpositionen je Shard, damit Hover-Markierungen exakt sitzen. */
+	public static Map<String, List<Slot>> shardSlots(AbstractContainerScreen<?> bildschirm, Rezeptbuch buch, boolean nurKiste) {
+		if (buch == null || bildschirm == null || bildschirm.getMenu() == null) return Map.of();
+		List<Slot> slots = bildschirm.getMenu().slots;
+		int grenze = nurKiste ? Math.max(0, slots.size() - EIGENE_SLOTS) : slots.size();
+		Map<String, List<Slot>> result = new LinkedHashMap<>();
+		for (int i = 0; i < grenze; i++) {
+			Slot slot = slots.get(i);
+			ItemStack stapel = slot.getItem();
+			if (stapel.isEmpty()) continue;
+			Shard shard = buch.nachAnzeigename(stapel.getHoverName().getString());
+			if (shard != null) result.computeIfAbsent(shard.schluessel(), ignored -> new java.util.ArrayList<>()).add(slot);
 		}
+		return result;
+	}
+
+	static boolean heisstWieEinShard(String roh) {
+		if (roh == null) return false;
 		String klar = roh.replaceAll("§.", "").trim().toLowerCase(Locale.ROOT);
 		return klar.endsWith("shard") && klar.length() > "shard".length();
 	}
