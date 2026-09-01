@@ -1,15 +1,14 @@
-# Fremde Bestandteile
+# Third-Party Components and Data
 
-## Fusionsrezepte
+## Fusion Recipes
 
-`src/main/resources/daten/fusion-data.json` stammt aus **[SkyShards](https://github.com/Campionnn/SkyShards)** von
-Campion, der Datenbasis hinter [skyshards.com](https://skyshards.com/).
-Die Datei wird unveraendert uebernommen und vom Workflow `daten-sync`
-woechentlich nachgezogen.
+`src/main/resources/daten/fusion-data.json` is sourced from **[SkyShards](https://github.com/Campionnn/SkyShards)** by Campion, the data source behind [skyshards.com](https://skyshards.com/).
 
-SkyShards steht unter der MIT-Lizenz:
+The file is consumed as provided and refreshed weekly by the `daten-sync` workflow.
 
-```
+SkyShards is licensed under the MIT License:
+
+```text
 MIT License
 
 Copyright (c) 2026 Campion
@@ -33,14 +32,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## Preise
+## Bazaar Prices
 
-Preise kommen von der oeffentlichen Hypixel-API
-(`https://api.hypixel.net/v2/skyblock/bazaar`). Der Endpunkt braucht keinen
-API-Schluessel. Es werden keine Kontodaten gelesen und nichts uebertragen.
+Prices are retrieved from the public Hypixel API endpoint:
 
-## Gerüst
+`https://api.hypixel.net/v2/skyblock/bazaar`
 
-`gradlew`, `gradlew.bat` und `gradle/wrapper/` stammen aus
-[FabricMC/fabric-example-mod](https://github.com/FabricMC/fabric-example-mod)
-(Tag `26.1.2`, CC0-1.0).
+No API key is required. Fusion 420 does not send account data or player information to this endpoint.
+
+## Fabric Project Template
+
+`gradlew`, `gradlew.bat`, and `gradle/wrapper/` originate from [FabricMC/fabric-example-mod](https://github.com/FabricMC/fabric-example-mod), tag `26.1.2`, licensed under CC0-1.0.
