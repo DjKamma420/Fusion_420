@@ -17,25 +17,30 @@ public final class Gewinnrechner {
 	public static List<Fusion> beste(List<Shard> vorhanden, Rezeptbuch buch, Map<String, Preis> preise,
 			Einkaufsmodus einkauf, Verkaufsmodus verkauf, double steuerProzent,
 			long mindestVolumen, int anzahl) {
-		if (vorhanden == null || vorhanden.isEmpty() || buch == null || preise == null || preise.isEmpty()) {
-			return List.of();
-		}
+		if (vorhanden == null || vorhanden.isEmpty() || buch == null || preise == null || preise.isEmpty()) return List.of();
 		double nachSteuer = 1.0 - Math.clamp(steuerProzent, 0.0, 100.0) / 100.0;
 		List<Fusion> gefunden = new ArrayList<>();
 		for (int i = 0; i < vorhanden.size(); i++) {
 			Shard a = vorhanden.get(i);
 			Preis preisA = preise.get(a.bazaarId());
-			if (preisA == null || (!preisA.handelbar() && einkauf != Einkaufsmodus.GEFARMT)) continue;
+			if (einkauf != Einkaufsmodus.GEFARMT && (preisA == null || !preisA.handelbar())) continue;
 			for (int j = i; j < vorhanden.size(); j++) {
 				Shard b = vorhanden.get(j);
 				Preis preisB = preise.get(b.bazaarId());
-				if (preisB == null || (!preisB.handelbar() && einkauf != Einkaufsmodus.GEFARMT)) continue;
-				double kosten = a.fusionsMenge() * einkauf.preis(preisA) + b.fusionsMenge() * einkauf.preis(preisB);
+				if (einkauf != Einkaufsmodus.GEFARMT && (preisB == null || !preisB.handelbar())) continue;
+
 				for (Rezept rezept : buch.fusionen(a.schluessel(), b.schluessel())) {
 					Preis preisAus = preise.get(rezept.ausgabe().bazaarId());
 					if (preisAus == null || !preisAus.handelbar()) continue;
 					long volumen = preisAus.engpassVolumenWoche();
 					if (volumen < mindestVolumen) continue;
+
+					// Die Menge steht am konkreten Rezept. Das ist fuer Sonderregeln wie
+					// Chameleon wichtig: dort ist die Eingabemenge nicht zwingend die
+					// normale fuse_amount des Shards.
+					double kosten = einkauf == Einkaufsmodus.GEFARMT ? 0.0
+							: rezept.eingabeA().fusionsMenge() * einkauf.preis(preisA)
+							+ rezept.eingabeB().fusionsMenge() * einkauf.preis(preisB);
 					double erloes = rezept.ausgabeMenge() * verkauf.preis(preisAus) * nachSteuer;
 					double gewinn = erloes - kosten;
 					double rendite = kosten > 0.0 ? gewinn / kosten : Double.POSITIVE_INFINITY;
