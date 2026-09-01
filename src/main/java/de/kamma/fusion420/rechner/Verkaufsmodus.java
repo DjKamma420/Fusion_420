@@ -2,10 +2,10 @@ package de.kamma.fusion420.rechner;
 
 import de.kamma.fusion420.markt.Preis;
 
-/** Preisbasis fuer den Verkauf der erzeugten Shards. */
+/** Price basis for the output shards. */
 public enum Verkaufsmodus {
-	SOFORT("Sofort", "Sofort verkaufen"),
-	ORDER("Order", "Verkaufsangebot");
+	SOFORT("Instant Sell", "Sell instantly"),
+	ORDER("Sell Order", "Sell via order");
 
 	private final String anzeige;
 	private final String detail;
