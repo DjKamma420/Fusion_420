@@ -11,12 +11,12 @@ import java.nio.file.Path;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-/** Alle Stellschrauben der Mod. */
+/** All configurable mod settings. */
 public final class Einstellungen {
 	public String titelMuster = "(?i)fusion";
 	public boolean nurAufHypixel = true;
 	public boolean nurContainerSlots = true;
-	/** Altkompatibles Feld; neue Konfiguration nutzt Einkauf/Verkauf getrennt. */
+	/** Legacy field kept for backwards compatibility; new configs use separate buy/sell modes. */
 	public String preisModus = "SOFORT";
 	public String einkaufsModus = "SOFORT";
 	public String verkaufsModus = "SOFORT";
@@ -26,7 +26,7 @@ public final class Einstellungen {
 	public int aktualisierungSekunden = 60;
 	public int overlayVersatzX = 6;
 	public int overlayVersatzY = 0;
-	public int overlayBreite = 230;
+	public int overlayBreite = 290;
 	public boolean rezepteOnlineLaden = true;
 	public String rezeptQuelleUrl = "https://raw.githubusercontent.com/DjKamma420/Fusion_420/main/src/main/resources/daten/fusion-data.json";
 	public boolean aufAktualisierungPruefen = true;
@@ -78,7 +78,7 @@ public final class Einstellungen {
 				e.tasteModusWechsel = (int) kommazahl(o, "tasteModusWechsel", e.tasteModusWechsel);
 				e.tasteAktualisieren = (int) kommazahl(o, "tasteAktualisieren", e.tasteAktualisieren);
 			}
-		} catch (Exception ignoriert) { }
+		} catch (Exception ignored) { }
 		e.gesundschrumpfen();
 		return e;
 	}
@@ -106,13 +106,13 @@ public final class Einstellungen {
 			Path ordner = datei.getParent();
 			if (ordner != null) Files.createDirectories(ordner);
 			Files.writeString(datei, new GsonBuilder().setPrettyPrinting().create().toJson(o), StandardCharsets.UTF_8);
-		} catch (IOException ignoriert) { }
+		} catch (IOException ignored) { }
 	}
 
 	private void gesundschrumpfen() {
 		anzahlEintraege = Math.clamp(anzahlEintraege, 1, 10);
 		aktualisierungSekunden = Math.clamp(aktualisierungSekunden, 10, 3600);
-		overlayBreite = Math.clamp(overlayBreite, 180, 500);
+		overlayBreite = Math.clamp(overlayBreite, 260, 500);
 		bazaarSteuerProzent = Math.clamp(bazaarSteuerProzent, 0.0, 25.0);
 		mindestVolumenWoche = Math.max(0L, mindestVolumenWoche);
 	}
