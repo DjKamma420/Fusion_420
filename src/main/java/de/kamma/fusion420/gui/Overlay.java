@@ -3,7 +3,6 @@ package de.kamma.fusion420.gui;
 import de.kamma.fusion420.Kontext;
 import de.kamma.fusion420.Zahlen;
 import de.kamma.fusion420.daten.Rezeptbuch;
-import de.kamma.fusion420.daten.Shard;
 import de.kamma.fusion420.einstellungen.Einstellungen;
 import de.kamma.fusion420.gui.Fusionserkennung.Fund;
 import de.kamma.fusion420.markt.Preisbuch;
@@ -28,287 +27,227 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** Fusion-Overlay mit getrennten Marktfiltern, Drag-and-Drop und Slot-Hover. */
+/** Ergebnis-Overlay fuer Fusionen, Marktfilter, Hover-Markierung und Drag-and-Drop. */
 public final class Overlay {
-	private static final int ZEILE = 10;
-	private static final int RAND = 5;
-	private static final int STEUER_HOEHE = 15;
-	private static final int BUTTON_HOEHE = 13;
-	private static final int FARBE_GRUND = 0xD8101018;
-	private static final int FARBE_RAHMEN = 0xFF3C4A6E;
-	private static final int FARBE_TITEL = 0xFFF0BA4A;
-	private static final int FARBE_TEXT = 0xFFFFFFFF;
-	private static final int FARBE_LEISE = 0xFF9AA4BC;
-	private static final int FARBE_WARNUNG = 0xFFFFAA33;
-	private static final int FARBE_KOSTEN = 0xFFFFAA55;
-	private static final int FARBE_GEWINN = 0xFF55FF88;
-	private static final int FARBE_VERLUST = 0xFFFF6666;
-	private static final int FARBE_BUTTON = 0xFF222A3A;
-	private static final int FARBE_BUTTON_HOVER = 0xFF34415A;
-	private static final int FARBE_MARKE = 0x6655FF88;
-	private static final long ABTASTABSTAND_MS = 250L;
+	private static final int ROW = 10, PAD = 5, BUTTON_H = 13;
+	private static final int BG = 0xD8101018, BORDER = 0xFF3C4A6E, TITLE = 0xFFF0BA4A;
+	private static final int TEXT = 0xFFFFFFFF, MUTED = 0xFF9AA4BC, WARN = 0xFFFFAA33;
+	private static final int PROFIT = 0xFF55FF88, LOSS = 0xFFFF6666;
+	private static final int BUTTON = 0xFF222A3A, BUTTON_HOVER = 0xFF34415A, MARK = 0x6655FF88;
+	private static final long SCAN_MS = 250L;
 
 	private Overlay() { }
 
-	public static void verdrahten(Kontext kontext) {
-		ScreenEvents.AFTER_INIT.register((klient, bildschirm, breite, hoehe) -> {
-			if (!(bildschirm instanceof AbstractContainerScreen<?> behaelter)) return;
-			Einstellungen e = kontext.einstellungen();
-			if (!e.titelPasst(bildschirm.getTitle().getString())) return;
-			if (e.nurAufHypixel && !Fusionserkennung.aufHypixel(klient)) return;
-
-			Zustand zustand = new Zustand(Einkaufsmodus.ausText(e.einkaufsModus), Verkaufsmodus.ausText(e.verkaufsModus));
-			ScreenEvents.beforeExtract(bildschirm).register((s, grafik, mausX, mausY, tick) -> zeichnen(behaelter, grafik, kontext, zustand, mausX, mausY));
-			ScreenEvents.afterBackground(bildschirm).register((s, grafik, mausX, mausY, tick) -> markieren(behaelter, grafik, kontext, zustand, mausX, mausY));
-			ScreenKeyboardEvents.afterKeyPress(bildschirm).register((s, ereignis) -> tasteGedrueckt(ereignis, kontext, zustand));
-			ScreenMouseEvents.beforeMouseClick(bildschirm).register((s, ereignis) -> mausKlick(behaelter, kontext, zustand, ereignis));
-			ScreenMouseEvents.afterMouseDrag(bildschirm).register((s, ereignis, dx, dy, handled) -> mausDrag(behaelter, kontext, zustand, ereignis));
-			ScreenMouseEvents.afterMouseRelease(bildschirm).register((s, ereignis, handled) -> mausLoslassen(kontext, zustand, ereignis));
+	public static void verdrahten(Kontext k) {
+		ScreenEvents.AFTER_INIT.register((mc, screen, w, h) -> {
+			if (!(screen instanceof AbstractContainerScreen<?> container)) return;
+			Einstellungen e = k.einstellungen();
+			if (!e.titelPasst(screen.getTitle().getString())) return;
+			if (e.nurAufHypixel && !Fusionserkennung.aufHypixel(mc)) return;
+			Zustand z = new Zustand(Einkaufsmodus.ausText(e.einkaufsModus), Verkaufsmodus.ausText(e.verkaufsModus));
+			ScreenEvents.afterBackground(screen).register((s, g, mx, my, tick) -> markieren(container, g, k, z, mx, my));
+			ScreenEvents.beforeExtract(screen).register((s, g, mx, my, tick) -> zeichnen(container, g, k, z, mx, my));
+			ScreenKeyboardEvents.afterKeyPress(screen).register((s, key) -> taste(key, k, z));
+			ScreenMouseEvents.beforeMouseClick(screen).register((s, event) -> klick(container, k, z, event));
+			ScreenMouseEvents.afterMouseDrag(screen).register((s, event, dx, dy, handled) -> { drag(container, k, z, event); return handled; });
+			ScreenMouseEvents.afterMouseRelease(screen).register((s, event, handled) -> { loslassen(k, z, event); return handled; });
 		});
 	}
 
-	private static void tasteGedrueckt(KeyEvent ereignis, Kontext kontext, Zustand zustand) {
-		if (ereignis.key() == kontext.einstellungen().tasteAktualisieren) {
-			kontext.preisbuch().erzwingeAktualisierung();
-			zustand.veralten();
+	private static void taste(KeyEvent key, Kontext k, Zustand z) {
+		if (key.key() == k.einstellungen().tasteAktualisieren) {
+			k.preisbuch().erzwingeAktualisierung();
+			z.veraltet();
 		}
 	}
 
-	private static void mausKlick(AbstractContainerScreen<?> behaelter, Kontext kontext, Zustand zustand, MouseButtonEvent ereignis) {
-		if (ereignis.button() != GLFW.GLFW_MOUSE_BUTTON_1 || !imOverlay(zustand, ereignis.x(), ereignis.y())) return;
-		double mausX = ereignis.x(), mausY = ereignis.y();
-		if (mausY >= zustand.y && mausY < zustand.y + STEUER_HOEHE) {
-			zustand.ziehen = true;
-			zustand.ziehStartX = mausX;
-			zustand.ziehStartY = mausY;
+	private static void klick(AbstractContainerScreen<?> container, Kontext k, Zustand z, MouseButtonEvent e) {
+		if (e.button() != GLFW.GLFW_MOUSE_BUTTON_1 || !in(z, e.x(), e.y())) return;
+		double x = e.x(), y = e.y();
+		if (y < z.y + 15) {
+			z.ziehen = true;
+			z.grabX = x - z.x;
+			z.grabY = y - z.y;
 			return;
 		}
-		if (inRechteck(mausX, mausY, zustand.einkaufX, zustand.controlY, zustand.controlBreite, BUTTON_HOEHE)) {
-			zustand.dropdown = zustand.dropdown == 1 ? -1 : 1;
-			return;
-		}
-		if (inRechteck(mausX, mausY, zustand.verkaufX, zustand.controlY, zustand.controlBreite, BUTTON_HOEHE)) {
-			zustand.dropdown = zustand.dropdown == 2 ? -1 : 2;
-			return;
-		}
-		if (zustand.dropdown == 1) {
-			int auswahl = menueAuswahl(mausY, zustand.controlY + BUTTON_HOEHE, Einkaufsmodus.values().length);
-			if (inRechteck(mausX, mausY, zustand.einkaufX, zustand.controlY + BUTTON_HOEHE, zustand.controlBreite, Einkaufsmodus.values().length * ZEILE) && auswahl >= 0) {
-				zustand.einkauf = Einkaufsmodus.values()[auswahl];
-				speichern(kontext, zustand);
-				return;
+		if (inRect(x, y, z.buyX, z.controlY, z.controlW, BUTTON_H)) { z.dropdown = z.dropdown == 1 ? -1 : 1; return; }
+		if (inRect(x, y, z.sellX, z.controlY, z.controlW, BUTTON_H)) { z.dropdown = z.dropdown == 2 ? -1 : 2; return; }
+		if (z.dropdown == 1) {
+			int i = option(y, z.controlY + BUTTON_H, Einkaufsmodus.values().length);
+			if (inRect(x, y, z.buyX, z.controlY + BUTTON_H, z.controlW, Einkaufsmodus.values().length * ROW) && i >= 0) {
+				z.einkauf = Einkaufsmodus.values()[i]; speichern(k, z); return;
 			}
 		}
-		if (zustand.dropdown == 2) {
-			int auswahl = menueAuswahl(mausY, zustand.controlY + BUTTON_HOEHE, Verkaufsmodus.values().length);
-			if (inRechteck(mausX, mausY, zustand.verkaufX, zustand.controlY + BUTTON_HOEHE, zustand.controlBreite, Verkaufsmodus.values().length * ZEILE) && auswahl >= 0) {
-				zustand.verkauf = Verkaufsmodus.values()[auswahl];
-				speichern(kontext, zustand);
-				return;
+		if (z.dropdown == 2) {
+			int i = option(y, z.controlY + BUTTON_H, Verkaufsmodus.values().length);
+			if (inRect(x, y, z.sellX, z.controlY + BUTTON_H, z.controlW, Verkaufsmodus.values().length * ROW) && i >= 0) {
+				z.verkauf = Verkaufsmodus.values()[i]; speichern(k, z); return;
 			}
 		}
-		zustand.dropdown = -1;
+		z.dropdown = -1;
 	}
 
-	private static void mausDrag(AbstractContainerScreen<?> behaelter, Kontext kontext, Zustand zustand, MouseButtonEvent ereignis) {
-		if (!zustand.ziehen || ereignis.button() != GLFW.GLFW_MOUSE_BUTTON_1) return;
-		ContainerScreenZugriff masse = (ContainerScreenZugriff) (Object) behaelter;
-		Einstellungen e = kontext.einstellungen();
-		int containerX = masse.fusion420$linkerRand() + masse.fusion420$breite();
-		int containerY = masse.fusion420$obererRand();
-		e.overlayVersatzX = Math.clamp((int) Math.round(ereignis.x() - containerX - (zustand.ziehStartX - zustand.x)), -1000, 1000);
-		e.overlayVersatzY = Math.clamp((int) Math.round(ereignis.y() - containerY - (zustand.ziehStartY - zustand.y)), -1000, 1000);
+	private static void drag(AbstractContainerScreen<?> container, Kontext k, Zustand z, MouseButtonEvent e) {
+		if (!z.ziehen || e.button() != GLFW.GLFW_MOUSE_BUTTON_1) return;
+		ContainerScreenZugriff c = (ContainerScreenZugriff) (Object) container;
+		Einstellungen s = k.einstellungen();
+		int baseX = c.fusion420$linkerRand() + c.fusion420$breite();
+		int baseY = c.fusion420$obererRand();
+		s.overlayVersatzX = Math.clamp((int) Math.round(e.x() - z.grabX - baseX), -1000, 1000);
+		s.overlayVersatzY = Math.clamp((int) Math.round(e.y() - z.grabY - baseY), -1000, 1000);
 	}
 
-	private static void mausLoslassen(Kontext kontext, Zustand zustand, MouseButtonEvent ereignis) {
-		if (ereignis.button() != GLFW.GLFW_MOUSE_BUTTON_1) return;
-		if (zustand.ziehen) kontext.einstellungenSichern().run();
-		zustand.ziehen = false;
+	private static void loslassen(Kontext k, Zustand z, MouseButtonEvent e) {
+		if (e.button() != GLFW.GLFW_MOUSE_BUTTON_1) return;
+		if (z.ziehen) k.einstellungenSichern().run();
+		z.ziehen = false;
 	}
 
-	private static void speichern(Kontext kontext, Zustand zustand) {
-		Einstellungen e = kontext.einstellungen();
-		e.einkaufsModus = zustand.einkauf.name();
-		e.verkaufsModus = zustand.verkauf.name();
-		zustand.dropdown = -1;
-		zustand.veralten();
-		kontext.einstellungenSichern().run();
+	private static void speichern(Kontext k, Zustand z) {
+		Einstellungen e = k.einstellungen();
+		e.einkaufsModus = z.einkauf.name();
+		e.verkaufsModus = z.verkauf.name();
+		z.dropdown = -1;
+		z.veraltet();
+		k.einstellungenSichern().run();
 	}
 
-	private static void zeichnen(AbstractContainerScreen<?> behaelter, GuiGraphicsExtractor grafik, Kontext kontext, Zustand zustand, int mausX, int mausY) {
-		Font schrift = Minecraft.getInstance().font;
-		if (schrift == null) return;
-		Einstellungen e = kontext.einstellungen();
-		kontext.preisbuch().aktualisiereWennAelterAls(e.aktualisierungSekunden * 1000L);
-		neuRechnenWennNoetig(behaelter, kontext, zustand);
-		List<Zeile> zeilen = zeilenBauen(kontext, zustand);
-		ContainerScreenZugriff masse = (ContainerScreenZugriff) (Object) behaelter;
-		int x = masse.fusion420$linkerRand() + masse.fusion420$breite() + e.overlayVersatzX;
-		int y = masse.fusion420$obererRand() + e.overlayVersatzY;
-		int breite = e.overlayBreite;
-		int inhaltZeilen = zeilen.stream().mapToInt(z -> z.fusionIndex() >= 0 ? 4 : 1).sum();
-		int menuHoehe = zustand.dropdown == 1 ? Einkaufsmodus.values().length * ZEILE : zustand.dropdown == 2 ? Verkaufsmodus.values().length * ZEILE : 0;
-		int hoehe = 45 + menuHoehe + inhaltZeilen * ZEILE + 2 * RAND;
+	private static void zeichnen(AbstractContainerScreen<?> container, GuiGraphicsExtractor g, Kontext k, Zustand z, int mx, int my) {
+		Font font = Minecraft.getInstance().font;
+		if (font == null) return;
+		Einstellungen e = k.einstellungen();
+		k.preisbuch().aktualisiereWennAelterAls(e.aktualisierungSekunden * 1000L);
+		neuBerechnen(container, k, z);
+		List<Zeile> lines = zeilen(k, z);
+		ContainerScreenZugriff c = (ContainerScreenZugriff) (Object) container;
+		int x = c.fusion420$linkerRand() + c.fusion420$breite() + e.overlayVersatzX;
+		int y = c.fusion420$obererRand() + e.overlayVersatzY;
+		int menuH = z.dropdown == 1 ? Einkaufsmodus.values().length * ROW : z.dropdown == 2 ? Verkaufsmodus.values().length * ROW : 0;
+		int contentRows = lines.stream().mapToInt(l -> l.fusionIndex >= 0 ? 4 : 1).sum();
+		int width = e.overlayBreite;
+		int height = 45 + menuH + contentRows * ROW + 2 * PAD;
+		z.x = x; z.y = y; z.width = width; z.height = height;
+		z.controlY = y + 27; z.controlW = (width - 3 * PAD) / 2;
+		z.buyX = x + PAD; z.sellX = z.buyX + z.controlW + PAD;
+		z.rects.clear();
 
-		zustand.x = x;
-		zustand.y = y;
-		zustand.breite = breite;
-		zustand.hoehe = hoehe;
-		zustand.controlY = y + 27;
-		zustand.controlBreite = (breite - 3 * RAND) / 2;
-		zustand.einkaufX = x + RAND;
-		zustand.verkaufX = zustand.einkaufX + zustand.controlBreite + RAND;
-		zustand.fusionRects.clear();
+		g.fill(x, y, x + width, y + height, BG);
+		drawBorder(g, x, y, width, height);
+		g.text(font, "Fusion 420", x + PAD, y + PAD, TITLE);
+		g.text(font, "Einkauf", z.buyX, y + 15, MUTED);
+		g.text(font, "Verkauf", z.sellX, y + 15, MUTED);
+		drawButton(g, font, z.buyX, z.controlY, z.controlW, z.einkauf.anzeige(), mx, my);
+		drawButton(g, font, z.sellX, z.controlY, z.controlW, z.verkauf.anzeige(), mx, my);
 
-		grafik.fill(x, y, x + breite, y + hoehe, FARBE_GRUND);
-		rahmen(grafik, x, y, breite, hoehe);
-		int textX = x + RAND;
-		grafik.text(schrift, "Fusion 420", textX, y + RAND, FARBE_TITEL);
-		grafik.text(schrift, "Einkauf", zustand.einkaufX, y + STEUER_HOEHE, FARBE_LEISE);
-		grafik.text(schrift, "Verkauf", zustand.verkaufX, y + STEUER_HOEHE, FARBE_LEISE);
-		button(grafik, schrift, zustand.einkaufX, zustand.controlY, zustand.controlBreite, zustand.einkauf.anzeige(), mausX, mausY);
-		button(grafik, schrift, zustand.verkaufX, zustand.controlY, zustand.controlBreite, zustand.verkauf.anzeige(), mausX, mausY);
-
-		int resultY = y + 45 + (menuHoehe > 0 ? menuHoehe + 2 : 0);
-		int laufY = resultY;
-		for (Zeile zeile : zeilen) {
-			if (zeile.fusionIndex() < 0) {
-				grafik.text(schrift, kuerzen(schrift, zeile.text().get(0), breite - 2 * RAND), textX, laufY, zeile.farbe());
-				laufY += ZEILE;
+		int lineY = y + 45 + (menuH > 0 ? menuH + 2 : 0);
+		for (Zeile line : lines) {
+			if (line.fusionIndex < 0) {
+				g.text(font, shorten(font, line.text.get(0), width - 2 * PAD), x + PAD, lineY, line.color);
+				lineY += ROW;
 			} else {
-				zustand.fusionRects.add(new FusionRechteck(zeile.fusionIndex(), laufY, ZEILE * 4));
-				for (int i = 0; i < zeile.text().size(); i++) {
-					grafik.text(schrift, kuerzen(schrift, zeile.text().get(i), breite - 2 * RAND), textX, laufY + i * ZEILE, zeile.farbe());
-				}
-				laufY += ZEILE * 4;
+				z.rects.add(new FusionRect(line.fusionIndex, lineY, ROW * 4));
+				for (int i = 0; i < line.text.size(); i++) g.text(font, shorten(font, line.text.get(i), width - 2 * PAD), x + PAD, lineY + i * ROW, line.color);
+				lineY += ROW * 4;
 			}
 		}
-		if (zustand.dropdown == 1) menue(grafik, schrift, zustand.einkaufX, zustand.controlY + BUTTON_HOEHE, zustand.controlBreite, Einkaufsmodus.values(), zustand.einkauf.ordinal(), mausX, mausY);
-		else if (zustand.dropdown == 2) menue(grafik, schrift, zustand.verkaufX, zustand.controlY + BUTTON_HOEHE, zustand.controlBreite, Verkaufsmodus.values(), zustand.verkauf.ordinal(), mausX, mausY);
+		if (z.dropdown == 1) drawMenu(g, font, z.buyX, z.controlY + BUTTON_H, z.controlW, Einkaufsmodus.values(), z.einkauf.ordinal(), mx, my);
+		if (z.dropdown == 2) drawMenu(g, font, z.sellX, z.controlY + BUTTON_H, z.controlW, Verkaufsmodus.values(), z.verkauf.ordinal(), mx, my);
 	}
 
-	private static void markieren(AbstractContainerScreen<?> behaelter, GuiGraphicsExtractor grafik, Kontext kontext, Zustand zustand, int mausX, int mausY) {
-		int hovered = -1;
-		for (FusionRechteck rect : zustand.fusionRects) {
-			if (mausX >= zustand.x && mausX < zustand.x + zustand.breite && mausY >= rect.y() && mausY < rect.y() + rect.hoehe()) {
-				hovered = rect.index();
-				break;
-			}
-		}
-		if (hovered < 0 || hovered >= zustand.ergebnis.size()) return;
-		Fusion fusion = zustand.ergebnis.get(hovered);
-		Map<String, List<Slot>> slots = Fusionserkennung.shardSlots(behaelter, kontext.rezeptbuch(), kontext.einstellungen().nurContainerSlots);
-		ContainerScreenZugriff masse = (ContainerScreenZugriff) (Object) behaelter;
-		markiereShard(grafik, masse, slots.get(fusion.rezept().eingabeA().schluessel()));
-		markiereShard(grafik, masse, slots.get(fusion.rezept().eingabeB().schluessel()));
+	private static void markieren(AbstractContainerScreen<?> container, GuiGraphicsExtractor g, Kontext k, Zustand z, int mx, int my) {
+		int index = -1;
+		for (FusionRect r : z.rects) if (mx >= z.x && mx < z.x + z.width && my >= r.y && my < r.y + r.height) { index = r.index; break; }
+		if (index < 0 || index >= z.results.size()) return;
+		Fusion f = z.results.get(index);
+		Map<String, List<Slot>> slots = Fusionserkennung.shardSlots(container, k.rezeptbuch(), k.einstellungen().nurContainerSlots);
+		ContainerScreenZugriff c = (ContainerScreenZugriff) (Object) container;
+		markSlots(g, c, slots.get(f.rezept().eingabeA().schluessel()));
+		markSlots(g, c, slots.get(f.rezept().eingabeB().schluessel()));
 	}
 
-	private static void markiereShard(GuiGraphicsExtractor grafik, ContainerScreenZugriff masse, List<Slot> slots) {
+	private static void markSlots(GuiGraphicsExtractor g, ContainerScreenZugriff c, List<Slot> slots) {
 		if (slots == null) return;
 		for (Slot slot : slots) {
-			int x = masse.fusion420$linkerRand() + slot.x;
-			int y = masse.fusion420$obererRand() + slot.y;
-			grafik.fill(x, y, x + 16, y + 16, FARBE_MARKE);
+			int x = c.fusion420$linkerRand() + slot.x, y = c.fusion420$obererRand() + slot.y;
+			g.fill(x, y, x + 16, y + 16, MARK);
 		}
 	}
 
-	private static void neuRechnenWennNoetig(AbstractContainerScreen<?> behaelter, Kontext kontext, Zustand zustand) {
-		long jetzt = System.currentTimeMillis();
-		Rezeptbuch buch = kontext.rezeptbuch();
-		Einstellungen e = kontext.einstellungen();
-		if (jetzt - zustand.letzteAbtastung >= ABTASTABSTAND_MS) {
-			zustand.letzteAbtastung = jetzt;
-			zustand.fund = Fusionserkennung.shards(behaelter, buch, e.nurContainerSlots);
-		}
-		int inhalt = zustand.fund.hashCode();
-		long preisstand = kontext.preisbuch().standMillis();
-		if (inhalt == zustand.inhaltPruefsumme && preisstand == zustand.preisstand) return;
-		zustand.inhaltPruefsumme = inhalt;
-		zustand.preisstand = preisstand;
-		zustand.ergebnis = Gewinnrechner.beste(zustand.fund.erkannt(), buch, kontext.preisbuch().preise(), zustand.einkauf, zustand.verkauf, e.bazaarSteuerProzent, e.mindestVolumenWoche, e.anzahlEintraege);
+	private static void neuBerechnen(AbstractContainerScreen<?> container, Kontext k, Zustand z) {
+		long now = System.currentTimeMillis();
+		Einstellungen e = k.einstellungen();
+		Rezeptbuch book = k.rezeptbuch();
+		if (now - z.lastScan >= SCAN_MS) { z.lastScan = now; z.fund = Fusionserkennung.shards(container, book, e.nurContainerSlots); }
+		int contentHash = z.fund.hashCode();
+		long priceStamp = k.preisbuch().standMillis();
+		if (contentHash == z.contentHash && priceStamp == z.priceStamp) return;
+		z.contentHash = contentHash; z.priceStamp = priceStamp;
+		z.results = Gewinnrechner.beste(z.fund.erkannt(), book, k.preisbuch().preise(), z.einkauf, z.verkauf,
+				e.bazaarSteuerProzent, e.mindestVolumenWoche, e.anzahlEintraege);
 	}
 
-	private static List<Zeile> zeilenBauen(Kontext kontext, Zustand zustand) {
-		Preisbuch preisbuch = kontext.preisbuch();
-		Rezeptbuch buch = kontext.rezeptbuch();
-		List<Zeile> zeilen = new ArrayList<>();
-		if (buch == null) {
-			zeilen.add(Zeile.status("Rezepte werden geladen ..."));
-			return zeilen;
-		}
-		if (preisbuch.standMillis() == 0L) {
-			zeilen.add(Zeile.status(preisbuch.letzterFehler() == null ? "Bazaar wird abgefragt ..." : "Bazaar: " + preisbuch.letzterFehler()));
-			return zeilen;
-		}
-		if (zustand.fund.unbekannt() > 0) zeilen.add(Zeile.statusWarn("! " + zustand.fund.unbekannt() + " unbekannte Shards - Rezepte veraltet?"));
-		if (zustand.fund.erkannt().isEmpty()) zeilen.add(Zeile.status("Keine Shards erkannt"));
-		else if (zustand.ergebnis.isEmpty()) zeilen.add(Zeile.status(zustand.fund.erkannt().size() + " Shards, keine lohnende Fusion"));
+	private static List<Zeile> zeilen(Kontext k, Zustand z) {
+		Preisbuch p = k.preisbuch(); Rezeptbuch b = k.rezeptbuch(); List<Zeile> out = new ArrayList<>();
+		if (b == null) { out.add(Zeile.status("Rezepte werden geladen ...")); return out; }
+		if (p.standMillis() == 0L) { out.add(Zeile.status(p.letzterFehler() == null ? "Bazaar wird abgefragt ..." : "Bazaar: " + p.letzterFehler())); return out; }
+		if (z.fund.unbekannt() > 0) out.add(Zeile.warn("! " + z.fund.unbekannt() + " unbekannte Shards - Rezepte veraltet?"));
+		if (z.fund.erkannt().isEmpty()) out.add(Zeile.status("Keine Shards erkannt"));
+		else if (z.results.isEmpty()) out.add(Zeile.status(z.fund.erkannt().size() + " Shards, keine lohnende Fusion"));
 		else {
-			int platz = 1;
-			for (Fusion f : zustand.ergebnis) {
-				zeilen.add(Zeile.fusion(platz, List.of(
-					platz + ". " + f.rezept().eingabeA().fusionsMenge() + "x " + f.rezept().eingabeA().name() + " + " + f.rezept().eingabeB().fusionsMenge() + "x " + f.rezept().eingabeB().name(),
+			int n = 1;
+			for (Fusion f : z.results) {
+				out.add(Zeile.fusion(n, List.of(
+					n + ". " + f.rezept().eingabeA().fusionsMenge() + "x " + f.rezept().eingabeA().name() + " + " + f.rezept().eingabeB().fusionsMenge() + "x " + f.rezept().eingabeB().name(),
 					"   -> " + f.rezept().ausgabeMenge() + "x " + f.rezept().ausgabe().name(),
 					"   " + Zahlen.kurz(f.kosten()) + " -> " + Zahlen.kurz(f.erloes()),
 					"   " + Zahlen.mitVorzeichen(f.gewinn()) + "  (" + (Double.isInfinite(f.rendite()) ? "∞" : Zahlen.prozent(f.rendite())) + ")"
-				), f.gewinn() >= 0 ? FARBE_GEWINN : FARBE_VERLUST));
-				platz++;
+				), f.gewinn() >= 0 ? PROFIT : LOSS));
+				n++;
 			}
 		}
-		long alter = (System.currentTimeMillis() - preisbuch.standMillis()) / 1000L;
-		zeilen.add(Zeile.status("Preise " + alter + "s alt  -  Rezepte: " + buch.herkunft()));
-		zeilen.add(Zeile.status("Titel ziehen zum Verschieben"));
-		return zeilen;
+		long age = (System.currentTimeMillis() - p.standMillis()) / 1000L;
+		out.add(Zeile.status("Preise " + age + "s alt - Rezepte: " + b.herkunft()));
+		out.add(Zeile.status("Titel ziehen zum Verschieben"));
+		return out;
 	}
 
-	private static int menueAuswahl(double mouseY, int menuY, int count) { int i = (int) ((mouseY - menuY) / ZEILE); return i >= 0 && i < count ? i : -1; }
-	private static boolean imOverlay(Zustand z, double x, double y) { return x >= z.x && x < z.x + z.breite && y >= z.y && y < z.y + z.hoehe; }
-	private static boolean inRechteck(double x, double y, int rx, int ry, int rw, int rh) { return x >= rx && x < rx + rw && y >= ry && y < ry + rh; }
-	private static void button(GuiGraphicsExtractor grafik, Font schrift, int x, int y, int breite, String text, int mausX, int mausY) {
-		grafik.fill(x, y, x + breite, y + BUTTON_HOEHE, inRechteck(mausX, mausY, x, y, breite, BUTTON_HOEHE) ? FARBE_BUTTON_HOVER : FARBE_BUTTON);
-		grafik.text(schrift, text + " v", x + 4, y + 2, FARBE_TEXT);
+	private static int option(double y, int start, int count) { int i = (int) ((y - start) / ROW); return i >= 0 && i < count ? i : -1; }
+	private static boolean in(Zustand z, double x, double y) { return inRect(x, y, z.x, z.y, z.width, z.height); }
+	private static boolean inRect(double x, double y, int rx, int ry, int rw, int rh) { return x >= rx && x < rx + rw && y >= ry && y < ry + rh; }
+	private static void drawButton(GuiGraphicsExtractor g, Font f, int x, int y, int w, String text, int mx, int my) {
+		g.fill(x, y, x + w, y + BUTTON_H, inRect(mx, my, x, y, w, BUTTON_H) ? BUTTON_HOVER : BUTTON);
+		g.text(f, text + " v", x + 4, y + 2, TEXT);
 	}
-	private static void menue(GuiGraphicsExtractor grafik, Font schrift, int x, int y, int breite, Object[] werte, int aktuell, int mausX, int mausY) {
-		for (int i = 0; i < werte.length; i++) {
-			String text = werte[i] instanceof Einkaufsmodus e ? e.anzeige() : ((Verkaufsmodus) werte[i]).anzeige();
-			int yy = y + i * ZEILE;
-			grafik.fill(x, yy, x + breite, yy + ZEILE, inRechteck(mausX, mausY, x, yy, breite, ZEILE) ? FARBE_BUTTON_HOVER : FARBE_BUTTON);
-			grafik.text(schrift, text, x + 4, yy + 1, i == aktuell ? FARBE_TITEL : FARBE_TEXT);
+	private static void drawMenu(GuiGraphicsExtractor g, Font f, int x, int y, int w, Object[] values, int selected, int mx, int my) {
+		for (int i = 0; i < values.length; i++) {
+			String text = values[i] instanceof Einkaufsmodus e ? e.anzeige() : ((Verkaufsmodus) values[i]).anzeige();
+			int yy = y + i * ROW;
+			g.fill(x, yy, x + w, yy + ROW, inRect(mx, my, x, yy, w, ROW) ? BUTTON_HOVER : BUTTON);
+			g.text(f, text, x + 4, yy + 1, i == selected ? TITLE : TEXT);
 		}
 	}
-	private static void rahmen(GuiGraphicsExtractor grafik, int x, int y, int breite, int hoehe) {
-		grafik.fill(x, y, x + breite, y + 1, FARBE_RAHMEN);
-		grafik.fill(x, y + hoehe - 1, x + breite, y + hoehe, FARBE_RAHMEN);
-		grafik.fill(x, y, x + 1, y + hoehe, FARBE_RAHMEN);
-		grafik.fill(x + breite - 1, y, x + breite, y + hoehe, FARBE_RAHMEN);
+	private static void drawBorder(GuiGraphicsExtractor g, int x, int y, int w, int h) {
+		g.fill(x, y, x + w, y + 1, BORDER); g.fill(x, y + h - 1, x + w, y + h, BORDER);
+		g.fill(x, y, x + 1, y + h, BORDER); g.fill(x + w - 1, y, x + w, y + h, BORDER);
 	}
-	private static String kuerzen(Font schrift, String text, int hoechstbreite) {
-		if (schrift.width(text) <= hoechstbreite) return text;
-		String gekuerzt = text;
-		while (!gekuerzt.isEmpty() && schrift.width(gekuerzt + "...") > hoechstbreite) gekuerzt = gekuerzt.substring(0, gekuerzt.length() - 1);
-		return gekuerzt + "...";
+	private static String shorten(Font f, String text, int max) {
+		if (f.width(text) <= max) return text;
+		String s = text;
+		while (!s.isEmpty() && f.width(s + "...") > max) s = s.substring(0, s.length() - 1);
+		return s + "...";
 	}
 
-	private record Zeile(List<String> text, int farbe, int fusionIndex) {
-		static Zeile status(String text) { return new Zeile(List.of(text), FARBE_LEISE, -1); }
-		static Zeile statusWarn(String text) { return new Zeile(List.of(text), FARBE_WARNUNG, -1); }
-		static Zeile fusion(int index, List<String> text, int farbe) { return new Zeile(text, farbe, index); }
+	private record Zeile(List<String> text, int color, int fusionIndex) {
+		static Zeile status(String s) { return new Zeile(List.of(s), MUTED, -1); }
+		static Zeile warn(String s) { return new Zeile(List.of(s), WARN, -1); }
+		static Zeile fusion(int i, List<String> s, int color) { return new Zeile(s, color, i); }
 	}
-	private record FusionRechteck(int index, int y, int hoehe) { }
+	private record FusionRect(int index, int y, int height) { }
 	private static final class Zustand {
-		private Einkaufsmodus einkauf;
-		private Verkaufsmodus verkauf;
-		private long letzteAbtastung;
-		private int inhaltPruefsumme = Integer.MIN_VALUE;
-		private long preisstand = -1L;
-		private Fund fund = Fund.LEER;
-		private List<Fusion> ergebnis = List.of();
-		private final List<FusionRechteck> fusionRects = new ArrayList<>();
-		private int x, y, breite, hoehe, controlY, controlBreite, einkaufX, verkaufX;
-		private int dropdown = -1;
-		private boolean ziehen;
-		private double ziehStartX, ziehStartY;
-		private Zustand(Einkaufsmodus einkauf, Verkaufsmodus verkauf) { this.einkauf = einkauf; this.verkauf = verkauf; }
-		private void veralten() { inhaltPruefsumme = Integer.MIN_VALUE; preisstand = -1L; letzteAbtastung = 0L; }
+		Einkaufsmodus einkauf; Verkaufsmodus verkauf; long lastScan; int contentHash = Integer.MIN_VALUE; long priceStamp = -1;
+		Fund fund = Fund.LEER; List<Fusion> results = List.of(); final List<FusionRect> rects = new ArrayList<>();
+		int x, y, width, height, controlY, controlW, buyX, sellX, dropdown = -1; boolean ziehen; double grabX, grabY;
+		Zustand(Einkaufsmodus e, Verkaufsmodus v) { einkauf = e; verkauf = v; }
+		void veraltet() { contentHash = Integer.MIN_VALUE; priceStamp = -1; lastScan = 0; }
 	}
 }
