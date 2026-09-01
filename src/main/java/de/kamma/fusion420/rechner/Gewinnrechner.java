@@ -10,29 +10,23 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Rechnet aus, welche Fusionen der vorhandenen Shards sich lohnen.
- *
- * <p>Reine Funktion ohne Minecraft und ohne Netz — genau deshalb laesst sich
- * die Rechnung in der CI pruefen, waehrend das Spiel selbst nirgends laeuft.
- */
+/** Rechnet aus, welche Fusionen der vorhandenen Shards sich lohnen. */
 public final class Gewinnrechner {
 
 	private Gewinnrechner() {
 	}
 
 	/**
-	 * @param vorhanden      die im GUI erkannten Shards, ohne Doppelte
-	 * @param steuerProzent  Bazaar-Verkaufssteuer, wird vom Erloes abgezogen
-	 * @param mindestVolumen Ausgaben mit weniger Wochenumsatz fallen raus
-	 * @param anzahl         wie viele Ergebnisse zurueckkommen
-	 * @return die besten Fusionen, nach Gewinn absteigend
+	 * @param vorhanden die im GUI erkannten Shards, ohne Doppelte
+	 * @param einkauf Preisbasis fuer die Eingaben; GEFARMT setzt deren Kosten auf 0
+	 * @param verkauf Preisbasis fuer die Ausgabe
 	 */
 	public static List<Fusion> beste(
 			List<Shard> vorhanden,
 			Rezeptbuch buch,
 			Map<String, Preis> preise,
-			Modus modus,
+			Einkaufsmodus einkauf,
+			Verkaufsmodus verkauf,
 			double steuerProzent,
 			long mindestVolumen,
 			int anzahl) {
@@ -47,42 +41,46 @@ public final class Gewinnrechner {
 		for (int i = 0; i < vorhanden.size(); i++) {
 			Shard a = vorhanden.get(i);
 			Preis preisA = preise.get(a.bazaarId());
-			if (preisA == null || !preisA.handelbar()) {
-				continue;
-			}
+			if (preisA == null || (!preisA.handelbar() && einkauf != Einkaufsmodus.GEFARMT)) continue;
 
-			// j beginnt bei i: ein Shard laesst sich auch mit sich selbst fusionieren.
 			for (int j = i; j < vorhanden.size(); j++) {
 				Shard b = vorhanden.get(j);
 				Preis preisB = preise.get(b.bazaarId());
-				if (preisB == null || !preisB.handelbar()) {
-					continue;
-				}
+				if (preisB == null || (!preisB.handelbar() && einkauf != Einkaufsmodus.GEFARMT)) continue;
 
-				double kosten = a.fusionsMenge() * modus.einkauf(preisA)
-						+ b.fusionsMenge() * modus.einkauf(preisB);
-				if (kosten <= 0.0) {
-					continue;
-				}
-
+				double kosten = a.fusionsMenge() * einkauf.preis(preisA)
+						+ b.fusionsMenge() * einkauf.preis(preisB);
 				for (Rezept rezept : buch.fusionen(a.schluessel(), b.schluessel())) {
 					Preis preisAus = preise.get(rezept.ausgabe().bazaarId());
-					if (preisAus == null || !preisAus.handelbar()) {
-						continue;
-					}
+					if (preisAus == null || !preisAus.handelbar()) continue;
 					long volumen = preisAus.engpassVolumenWoche();
-					if (volumen < mindestVolumen) {
-						continue;
-					}
+					if (volumen < mindestVolumen) continue;
 
-					double erloes = rezept.ausgabeMenge() * modus.verkauf(preisAus) * nachSteuer;
+					double erloes = rezept.ausgabeMenge() * verkauf.preis(preisAus) * nachSteuer;
 					double gewinn = erloes - kosten;
-					gefunden.add(new Fusion(rezept, kosten, erloes, gewinn, gewinn / kosten, volumen));
+					double rendite = kosten > 0.0 ? gewinn / kosten : Double.POSITIVE_INFINITY;
+					gefunden.add(new Fusion(rezept, kosten, erloes, gewinn, rendite, volumen));
 				}
 			}
 		}
 
+		// Bei GEFARMT ist Gewinn == Verkaufserloes. Damit werden wirklich die
+		// besten Verkaufsziele gezeigt, nicht eine sinnlose Prozent-Rendite.
 		gefunden.sort(Comparator.comparingDouble(Fusion::gewinn).reversed());
 		return List.copyOf(gefunden.subList(0, Math.min(anzahl, gefunden.size())));
+	}
+
+	/** Alte API fuer vorhandene Tests/Integrationen. */
+	public static List<Fusion> beste(List<Shard> vorhanden, Rezeptbuch buch, Map<String, Preis> preise,
+			Modus modus, double steuerProzent, long mindestVolumen, int anzahl) {
+		return beste(vorhanden, buch, preise,
+				switch (modus) {
+					case SOFORT, GEMISCHT -> Einkaufsmodus.SOfort_PLACEHOLDER;
+					case ORDER -> Einkaufsmodus.ORDER;
+				},
+				switch (modus) {
+					case SOFORT -> Verkaufsmodus.SOFORT;
+					case ORDER, GEMISCHT -> Verkaufsmodus.ORDER;
+				}, steuerProzent, mindestVolumen, anzahl);
 	}
 }
