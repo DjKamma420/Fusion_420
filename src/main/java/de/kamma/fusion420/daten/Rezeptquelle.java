@@ -48,7 +48,7 @@ public final class Rezeptquelle {
 		if (einstellungen.rezepteOnlineLaden) {
 			try {
 				String json = ausDemNetz(einstellungen.rezeptQuelleUrl);
-				Rezeptbuch buch = Rezeptbuch.ausJson(json);
+				Rezeptbuch buch = Rezeptbuch.ausJson(json, "online");
 				ablegen(zwischenspeicher, json);
 				LOG.info("Rezepte aus dem Netz geladen: {} Shards, {} Rezepte",
 						buch.shardAnzahl(), buch.rezeptAnzahl());
@@ -61,7 +61,8 @@ public final class Rezeptquelle {
 
 		try {
 			if (Files.isRegularFile(zwischenspeicher)) {
-				Rezeptbuch buch = Rezeptbuch.ausJson(Files.readString(zwischenspeicher, StandardCharsets.UTF_8));
+				Rezeptbuch buch = Rezeptbuch.ausJson(
+						Files.readString(zwischenspeicher, StandardCharsets.UTF_8), "Zwischenspeicher");
 				LOG.info("Rezepte aus dem Zwischenspeicher geladen: {} Rezepte", buch.rezeptAnzahl());
 				return buch;
 			}
@@ -73,7 +74,8 @@ public final class Rezeptquelle {
 			if (strom == null) {
 				throw new IllegalStateException("Mitgelieferte Rezeptdaten fehlen im Jar");
 			}
-			Rezeptbuch buch = Rezeptbuch.ausJson(new String(strom.readAllBytes(), StandardCharsets.UTF_8));
+			Rezeptbuch buch = Rezeptbuch.ausJson(
+					new String(strom.readAllBytes(), StandardCharsets.UTF_8), "mitgeliefert");
 			LOG.info("Mitgelieferte Rezepte geladen: {} Rezepte", buch.rezeptAnzahl());
 			return buch;
 		} catch (Exception e) {

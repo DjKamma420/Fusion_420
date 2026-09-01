@@ -5,6 +5,7 @@ import de.kamma.fusion420.Zahlen;
 import de.kamma.fusion420.daten.Rezeptbuch;
 import de.kamma.fusion420.daten.Shard;
 import de.kamma.fusion420.einstellungen.Einstellungen;
+import de.kamma.fusion420.gui.Fusionserkennung.Fund;
 import de.kamma.fusion420.markt.Preisbuch;
 import de.kamma.fusion420.mixin.ContainerScreenZugriff;
 import de.kamma.fusion420.rechner.Fusion;
@@ -41,6 +42,7 @@ public final class Overlay {
 	private static final int FARBE_TITEL = 0xFFF0BA4A;
 	private static final int FARBE_TEXT = 0xFFFFFFFF;
 	private static final int FARBE_LEISE = 0xFF9AA4BC;
+	private static final int FARBE_WARNUNG = 0xFFFFAA33;
 	private static final int FARBE_KOSTEN = 0xFFFFAA55;
 	private static final int FARBE_GEWINN = 0xFF55FF88;
 	private static final int FARBE_VERLUST = 0xFFFF6666;
@@ -93,8 +95,7 @@ public final class Overlay {
 			return;
 		}
 		Einstellungen e = kontext.einstellungen();
-		Preisbuch preisbuch = kontext.preisbuch();
-		preisbuch.aktualisiereWennAelterAls(e.aktualisierungSekunden * 1000L);
+		kontext.preisbuch().aktualisiereWennAelterAls(e.aktualisierungSekunden * 1000L);
 
 		neuRechnenWennNoetig(behaelter, kontext, zustand);
 
@@ -128,27 +129,32 @@ public final class Overlay {
 
 		if (jetzt - zustand.letzteAbtastung >= ABTASTABSTAND_MS) {
 			zustand.letzteAbtastung = jetzt;
-			zustand.vorhanden = Fusionserkennung.shards(behaelter, buch, e.nurContainerSlots);
+			zustand.fund = Fusionserkennung.shards(behaelter, buch, e.nurContainerSlots);
 		}
 
-		int inhalt = zustand.vorhanden.hashCode();
+		int inhalt = zustand.fund.hashCode();
 		long preisstand = kontext.preisbuch().standMillis();
 		if (inhalt == zustand.inhaltPruefsumme && preisstand == zustand.preisstand) {
 			return;
 		}
 		zustand.inhaltPruefsumme = inhalt;
 		zustand.preisstand = preisstand;
-		zustand.ergebnis = Gewinnrechner.beste(zustand.vorhanden, buch, kontext.preisbuch().preise(),
+		zustand.ergebnis = Gewinnrechner.beste(zustand.fund.erkannt(), buch, kontext.preisbuch().preise(),
 				zustand.modus, e.bazaarSteuerProzent, e.mindestVolumenWoche, e.anzahlEintraege);
 	}
 
 	private static List<Zeile> zeilenBauen(Kontext kontext, Zustand zustand) {
-		Einstellungen e = kontext.einstellungen();
 		Preisbuch preisbuch = kontext.preisbuch();
+		Rezeptbuch buch = kontext.rezeptbuch();
 		List<Zeile> zeilen = new ArrayList<>();
 		zeilen.add(new Zeile("Fusion 420  -  " + zustand.modus.anzeige(), FARBE_TITEL));
 
-		if (kontext.rezeptbuch() == null) {
+		String neuere = kontext.neuereFassung();
+		if (neuere != null) {
+			zeilen.add(new Zeile("! Version " + neuere + " verfuegbar", FARBE_WARNUNG));
+		}
+
+		if (buch == null) {
 			zeilen.add(new Zeile("Rezepte werden geladen ...", FARBE_LEISE));
 			return zeilen;
 		}
@@ -158,38 +164,40 @@ public final class Overlay {
 					: "Bazaar: " + preisbuch.letzterFehler(), FARBE_LEISE));
 			return zeilen;
 		}
-		if (zustand.vorhanden.isEmpty()) {
+
+		// Ein Hypixel-Update bringt neue Shards, die die Rezeptdatei noch nicht
+		// kennt. Ohne Hinweis wirkte das Overlay dann einfach unvollstaendig.
+		if (zustand.fund.unbekannt() > 0) {
+			zeilen.add(new Zeile("! " + zustand.fund.unbekannt()
+					+ " unbekannte Shards - Rezepte veraltet?", FARBE_WARNUNG));
+		}
+
+		if (zustand.fund.erkannt().isEmpty()) {
 			zeilen.add(new Zeile("Keine Shards erkannt", FARBE_LEISE));
-			return zeilen;
-		}
-		if (zustand.ergebnis.isEmpty()) {
-			zeilen.add(new Zeile(zustand.vorhanden.size() + " Shards, keine lohnende Fusion", FARBE_LEISE));
-			zeilen.add(new Zeile(fusszeile(preisbuch), FARBE_LEISE));
-			return zeilen;
+		} else if (zustand.ergebnis.isEmpty()) {
+			zeilen.add(new Zeile(zustand.fund.erkannt().size() + " Shards, keine lohnende Fusion", FARBE_LEISE));
+		} else {
+			int platz = 1;
+			for (Fusion fusion : zustand.ergebnis) {
+				Shard a = fusion.rezept().eingabeA();
+				Shard b = fusion.rezept().eingabeB();
+				zeilen.add(new Zeile(platz + ". " + a.fusionsMenge() + "x " + a.name()
+						+ " + " + b.fusionsMenge() + "x " + b.name(), FARBE_TEXT));
+				zeilen.add(new Zeile("   -> " + fusion.rezept().ausgabeMenge() + "x "
+						+ fusion.rezept().ausgabe().name(), FARBE_LEISE));
+				zeilen.add(new Zeile("   " + Zahlen.kurz(fusion.kosten()) + " -> "
+						+ Zahlen.kurz(fusion.erloes()), FARBE_KOSTEN));
+				zeilen.add(new Zeile("   " + Zahlen.mitVorzeichen(fusion.gewinn())
+						+ "  (" + Zahlen.prozent(fusion.rendite()) + ")",
+						fusion.gewinn() >= 0 ? FARBE_GEWINN : FARBE_VERLUST));
+				platz++;
+			}
 		}
 
-		int platz = 1;
-		for (Fusion fusion : zustand.ergebnis) {
-			Shard a = fusion.rezept().eingabeA();
-			Shard b = fusion.rezept().eingabeB();
-			zeilen.add(new Zeile(platz + ". " + a.fusionsMenge() + "x " + a.name()
-					+ " + " + b.fusionsMenge() + "x " + b.name(), FARBE_TEXT));
-			zeilen.add(new Zeile("   -> " + fusion.rezept().ausgabeMenge() + "x "
-					+ fusion.rezept().ausgabe().name(), FARBE_LEISE));
-			zeilen.add(new Zeile("   " + Zahlen.kurz(fusion.kosten()) + " -> "
-					+ Zahlen.kurz(fusion.erloes()), FARBE_KOSTEN));
-			zeilen.add(new Zeile("   " + Zahlen.mitVorzeichen(fusion.gewinn())
-					+ "  (" + Zahlen.prozent(fusion.rendite()) + ")",
-					fusion.gewinn() >= 0 ? FARBE_GEWINN : FARBE_VERLUST));
-			platz++;
-		}
-		zeilen.add(new Zeile(fusszeile(preisbuch), FARBE_LEISE));
-		return zeilen;
-	}
-
-	private static String fusszeile(Preisbuch preisbuch) {
 		long alter = (System.currentTimeMillis() - preisbuch.standMillis()) / 1000L;
-		return "Preise " + alter + "s alt  -  M Modus, R neu";
+		zeilen.add(new Zeile("Preise " + alter + "s alt  -  Rezepte: " + buch.herkunft(), FARBE_LEISE));
+		zeilen.add(new Zeile("M Modus wechseln  -  R neu laden", FARBE_LEISE));
+		return zeilen;
 	}
 
 	private static void rahmen(GuiGraphicsExtractor grafik, int x, int y, int breite, int hoehe) {
@@ -220,7 +228,7 @@ public final class Overlay {
 		private long letzteAbtastung;
 		private int inhaltPruefsumme = Integer.MIN_VALUE;
 		private long preisstand = -1L;
-		private List<Shard> vorhanden = List.of();
+		private Fund fund = Fund.LEER;
 		private List<Fusion> ergebnis = List.of();
 
 		private Zustand(Modus modus) {

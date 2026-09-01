@@ -1,0 +1,44 @@
+name: Fehler melden
+description: Etwas funktioniert nicht wie beschrieben
+labels: ["fehler"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke fürs Melden. Die Angaben unten sparen mehrere Rückfragen.
+  - type: input
+    id: version
+    attributes:
+      label: Version von Fusion 420
+      description: Steht im Log direkt nach "Fusion 420 ... bereit".
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: minecraft
+    attributes:
+      label: Minecraft- und Loader-Version
+      placeholder: "26.1.2, Fabric 0.19.3"
+    validations:
+      required: true
+  - type: textarea
+    id: was
+    attributes:
+      label: Was ist passiert?
+      description: Was hast du erwartet, was kam stattdessen?
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: >
+        Aus dem Instanzordner die neueste Datei aus logs/. Zeilen mit
+        "Fusion 420" sind die interessanten. Bitte vorher durchsehen —
+        Logs können Spielernamen enthalten.
+      render: text
+  - type: textarea
+    id: mods
+    attributes:
+      label: Andere Mods
+      description: Besonders andere Oberflächen-Mods wie SkyHanni oder NEU.

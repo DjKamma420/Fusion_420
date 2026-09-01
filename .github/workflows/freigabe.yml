@@ -57,6 +57,7 @@ jobs:
                   'de/kamma/fusion420/daten/Rezeptbuch.class',
                   'de/kamma/fusion420/markt/Bazaar.class',
                   'de/kamma/fusion420/rechner/Gewinnrechner.class',
+                  'de/kamma/fusion420/wartung/Versionspruefung.class',
               ]
               fehlend = [p for p in pflicht if p not in namen]
               if fehlend:

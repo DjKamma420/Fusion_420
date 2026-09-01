@@ -54,6 +54,9 @@ public final class Einstellungen {
 	public String rezeptQuelleUrl =
 			"https://raw.githubusercontent.com/DjKamma420/Fusion_420/main/src/main/resources/daten/fusion-data.json";
 
+	/** Beim Start nachsehen, ob es eine neuere Freigabe der Mod gibt. */
+	public boolean aufAktualisierungPruefen = true;
+
 	/** GLFW-Tastencodes. 77 = M, 82 = R. */
 	public int tasteModusWechsel = 77;
 	public int tasteAktualisieren = 82;
@@ -98,6 +101,7 @@ public final class Einstellungen {
 				e.overlayBreite = (int) kommazahl(o, "overlayBreite", e.overlayBreite);
 				e.rezepteOnlineLaden = flagge(o, "rezepteOnlineLaden", e.rezepteOnlineLaden);
 				e.rezeptQuelleUrl = text(o, "rezeptQuelleUrl", e.rezeptQuelleUrl);
+				e.aufAktualisierungPruefen = flagge(o, "aufAktualisierungPruefen", e.aufAktualisierungPruefen);
 				e.tasteModusWechsel = (int) kommazahl(o, "tasteModusWechsel", e.tasteModusWechsel);
 				e.tasteAktualisieren = (int) kommazahl(o, "tasteAktualisieren", e.tasteAktualisieren);
 			}
@@ -123,6 +127,7 @@ public final class Einstellungen {
 		o.addProperty("overlayBreite", overlayBreite);
 		o.addProperty("rezepteOnlineLaden", rezepteOnlineLaden);
 		o.addProperty("rezeptQuelleUrl", rezeptQuelleUrl);
+		o.addProperty("aufAktualisierungPruefen", aufAktualisierungPruefen);
 		o.addProperty("tasteModusWechsel", tasteModusWechsel);
 		o.addProperty("tasteAktualisieren", tasteAktualisieren);
 		try {
