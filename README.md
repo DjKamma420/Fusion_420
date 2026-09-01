@@ -37,7 +37,7 @@ und die **Fabric API**.
 2. *Bearbeiten → Mods → Mods hinzufügen* → nach `Fusion 420` suchen
    (sobald die Mod auf Modrinth steht), oder:
 3. Das Jar aus dem
-   [neuesten Release](https://github.com/DjKamma420/fusion_420/releases/latest)
+   [neuesten Release](https://github.com/DjKamma420/Fusion_420/releases/latest)
    laden und über *Bearbeiten → Mods → Ordner öffnen* dort ablegen.
 4. Die **Fabric API** nicht vergessen — ohne sie startet die Mod nicht.
 

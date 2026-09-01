@@ -52,7 +52,7 @@ public final class Einstellungen {
 
 	public boolean rezepteOnlineLaden = true;
 	public String rezeptQuelleUrl =
-			"https://raw.githubusercontent.com/DjKamma420/fusion_420/main/src/main/resources/daten/fusion-data.json";
+			"https://raw.githubusercontent.com/DjKamma420/Fusion_420/main/src/main/resources/daten/fusion-data.json";
 
 	/** GLFW-Tastencodes. 77 = M, 82 = R. */
 	public int tasteModusWechsel = 77;

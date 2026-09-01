@@ -20,14 +20,16 @@
 - [x] Workflows `bauen`, `freigabe`, `daten-sync`
 - [x] README, LICENSE (MIT), THIRD_PARTY (SkyShards, MIT)
 
+- [x] Repo `DjKamma420/Fusion_420` angelegt (von Hand — die GitHub-App dieser
+      Sitzung darf keine Repos erstellen) und bespielt
+- [x] **CI grün beim ersten Lauf.** Damit ist belegt, dass der Gradle-Build
+      übersetzt — das ließ sich hier nicht prüfen (Java 21 statt 25,
+      `maven.fabricmc.net` vom Egress-Proxy gesperrt).
+- [x] CI meldet jetzt die Testzahl und bricht ab, wenn null Tests laufen —
+      sonst hätte ein leerer Lauf grün gemeldet.
+
 ## Offen
 
-- [ ] **Repo auf GitHub anlegen** — die GitHub-App dieser Sitzung darf keine
-      Repos erstellen (`403 Resource not accessible by integration`).
-      Muss von Hand passieren, dann kann gepusht werden.
-- [ ] **CI grün bekommen.** Der Gradle-Build lässt sich hier nicht ausführen:
-      Java 21 statt 25, und `maven.fabricmc.net` ist vom Egress-Proxy gesperrt.
-      Der Actions-Lauf ist der einzige Beweis, dass es übersetzt.
 - [ ] **Modrinth** — Projekt anlegen, dann `MODRINTH_TOKEN` (Secret) und
       `MODRINTH_ID` (Variable) im Repo hinterlegen. Erst danach greift der
       Upload-Schritt in `freigabe.yml`; er ist bislang ungetestet.
@@ -47,10 +49,13 @@ hätte geratenen Code ausgeliefert. Stattdessen liegt die Naht bereit:
 Umsetzung. Eine zweite Quelle lässt sich ergänzen, ohne den Rechner
 anzufassen.
 
-## Restrisiken im Code
+## Erledigte Restrisiken
 
-Zwei Minecraft-Zugriffe konnte ich gegen keinen echten 26.1-Quelltext
-belegen; beides sind langlebige Namen und im Fehlerfall Einzeiler:
+`AbstractContainerMenu#slots`, `Minecraft#getCurrentServer()` und
+`ServerData#ip` waren gegen keinen echten 26.1-Quelltext belegbar. Der
+erfolgreiche CI-Build beweist, dass es diese Namen gibt — sonst hätte der
+Übersetzer sie angemahnt.
 
-- `AbstractContainerMenu#slots` in `gui/Fusionserkennung`
-- `Minecraft#getCurrentServer()` und `ServerData#ip`, ebenda
+Was ein grüner Build **nicht** beweist: dass das Overlay im Spiel an der
+richtigen Stelle erscheint und dass die Shard-Namen zu Hypixels Schreibweise
+passen. Das entscheidet erst der erste Blick ins laufende Spiel.
