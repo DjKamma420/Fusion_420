@@ -20,6 +20,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.world.inventory.Slot;
 import org.lwjgl.glfw.GLFW;
 
@@ -64,11 +65,11 @@ public final class Overlay {
 			ScreenKeyboardEvents.afterKeyPress(bildschirm).register(
 					(s, ereignis) -> tasteGedrueckt(ereignis, kontext, zustand));
 			ScreenMouseEvents.beforeMouseClick(bildschirm).register(
-					(s, mausX, mausY, button) -> mausKlick(behaelter, kontext, zustand, mausX, mausY, button));
+					(s, ereignis) -> mausKlick(behaelter, kontext, zustand, ereignis));
 			ScreenMouseEvents.afterMouseDrag(bildschirm).register(
-					(s, mausX, mausY, button, dx, dy) -> mausDrag(behaelter, kontext, zustand, mausX, mausY, button));
+					(s, ereignis, dx, dy) -> mausDrag(behaelter, kontext, zustand, ereignis));
 			ScreenMouseEvents.afterMouseRelease(bildschirm).register(
-					(s, mausX, mausY, button) -> mausLoslassen(kontext, zustand, button));
+					(s, ereignis, handled) -> mausLoslassen(kontext, zustand, ereignis));
 		});
 	}
 
@@ -80,9 +81,10 @@ public final class Overlay {
 		}
 	}
 
-	private static void mausKlick(AbstractContainerScreen<?> behaelter, Kontext kontext, Zustand zustand,
-			double mausX, double mausY, int button) {
-		if (button != GLFW.GLFW_MOUSE_BUTTON_1 || !imOverlay(zustand, mausX, mausY)) return;
+	private static void mausKlick(AbstractContainerScreen<?> behaelter, Kontext kontext, Zustand zustand, MouseButtonEvent ereignis) {
+		if (ereignis.button() != GLFW.GLFW_MOUSE_BUTTON_1 || !imOverlay(zustand, ereignis.x(), ereignis.y())) return;
+		double mausX = ereignis.x();
+		double mausY = ereignis.y();
 		if (mausY >= zustand.y && mausY < zustand.y + STEUER_HOEHE) {
 			zustand.ziehen = true;
 			zustand.ziehStartX = mausX;
@@ -118,19 +120,18 @@ public final class Overlay {
 		zustand.dropdown = -1;
 	}
 
-	private static void mausDrag(AbstractContainerScreen<?> behaelter, Kontext kontext, Zustand zustand,
-			double mausX, double mausY, int button) {
-		if (!zustand.ziehen || button != GLFW.GLFW_MOUSE_BUTTON_1) return;
+	private static void mausDrag(AbstractContainerScreen<?> behaelter, Kontext kontext, Zustand zustand, MouseButtonEvent ereignis) {
+		if (!zustand.ziehen || ereignis.button() != GLFW.GLFW_MOUSE_BUTTON_1) return;
 		ContainerScreenZugriff masse = (ContainerScreenZugriff) (Object) behaelter;
 		Einstellungen e = kontext.einstellungen();
 		int containerX = masse.fusion420$linkerRand() + masse.fusion420$breite();
 		int containerY = masse.fusion420$obererRand();
-		e.overlayVersatzX = Math.clamp((int) Math.round(mausX - containerX - (zustand.ziehStartX - zustand.x)), -1000, 1000);
-		e.overlayVersatzY = Math.clamp((int) Math.round(mausY - containerY - (zustand.ziehStartY - zustand.y)), -1000, 1000);
+		e.overlayVersatzX = Math.clamp((int) Math.round(ereignis.x() - containerX - (zustand.ziehStartX - zustand.x)), -1000, 1000);
+		e.overlayVersatzY = Math.clamp((int) Math.round(ereignis.y() - containerY - (zustand.ziehStartY - zustand.y)), -1000, 1000);
 	}
 
-	private static void mausLoslassen(Kontext kontext, Zustand zustand, int button) {
-		if (button != GLFW.GLFW_MOUSE_BUTTON_1) return;
+	private static void mausLoslassen(Kontext kontext, Zustand zustand, MouseButtonEvent ereignis) {
+		if (ereignis.button() != GLFW.GLFW_MOUSE_BUTTON_1) return;
 		if (zustand.ziehen) kontext.einstellungenSichern().run();
 		zustand.ziehen = false;
 	}
@@ -189,19 +190,18 @@ public final class Overlay {
 			} else {
 				zustand.fusionRects.add(new FusionRechteck(zeile.fusionIndex(), laufY, ZEILE * 4));
 				for (int i = 0; i < zeile.text().size(); i++) {
-					grafik.text(schrift, kuerzen(schrift, zeile.text().get(i), breite - 2 * RAND),
-							textX, laufY + i * ZEILE, zeile.farbe());
+					grafik.text(schrift, kuerzen(schrift, zeile.text().get(i), breite - 2 * RAND), textX, laufY + i * ZEILE, zeile.farbe());
 				}
 				laufY += ZEILE * 4;
 			}
 		}
 
 		if (zustand.dropdown == 1) {
-			menue(grafik, schrift, zustand.einkaufX, zustand.controlY + BUTTON_HOEHE,
-					zustand.controlBreite, Einkaufsmodus.values(), zustand.einkauf.ordinal(), mausX, mausY);
+			menue(grafik, schrift, zustand.einkaufX, zustand.controlY + BUTTON_HOEHE, zustand.controlBreite,
+					Einkaufsmodus.values(), zustand.einkauf.ordinal(), mausX, mausY);
 		} else if (zustand.dropdown == 2) {
-			menue(grafik, schrift, zustand.verkaufX, zustand.controlY + BUTTON_HOEHE,
-				zustand.controlBreite, Verkaufsmodus.values(), zustand.verkauf.ordinal(), mausX, mausY);
+			menue(grafik, schrift, zustand.verkaufX, zustand.controlY + BUTTON_HOEHE, zustand.controlBreite,
+					Verkaufsmodus.values(), zustand.verkauf.ordinal(), mausX, mausY);
 		}
 	}
 
@@ -209,16 +209,14 @@ public final class Overlay {
 			Zustand zustand, int mausX, int mausY) {
 		int hovered = -1;
 		for (FusionRechteck rect : zustand.fusionRects) {
-			if (mausX >= zustand.x && mausX < zustand.x + zustand.breite
-					&& mausY >= rect.y() && mausY < rect.y() + rect.hoehe()) {
+			if (mausX >= zustand.x && mausX < zustand.x + zustand.breite && mausY >= rect.y() && mausY < rect.y() + rect.hoehe()) {
 				hovered = rect.index();
 				break;
 			}
 		}
 		if (hovered < 0 || hovered >= zustand.ergebnis.size()) return;
 		Fusion fusion = zustand.ergebnis.get(hovered);
-		Map<String, List<Slot>> slots = Fusionserkennung.shardSlots(behaelter, kontext.rezeptbuch(),
-				kontext.einstellungen().nurContainerSlots);
+		Map<String, List<Slot>> slots = Fusionserkennung.shardSlots(behaelter, kontext.rezeptbuch(), kontext.einstellungen().nurContainerSlots);
 		ContainerScreenZugriff masse = (ContainerScreenZugriff) (Object) behaelter;
 		markiereShard(grafik, masse, slots.get(fusion.rezept().eingabeA().schluessel()));
 		markiereShard(grafik, masse, slots.get(fusion.rezept().eingabeB().schluessel()));
@@ -262,9 +260,7 @@ public final class Overlay {
 			zeilen.add(Zeile.status(preisbuch.letzterFehler() == null ? "Bazaar wird abgefragt ..." : "Bazaar: " + preisbuch.letzterFehler()));
 			return zeilen;
 		}
-		if (zustand.fund.unbekannt() > 0) {
-			zeilen.add(Zeile.statusWarn("! " + zustand.fund.unbekannt() + " unbekannte Shards - Rezepte veraltet?"));
-		}
+		if (zustand.fund.unbekannt() > 0) zeilen.add(Zeile.statusWarn("! " + zustand.fund.unbekannt() + " unbekannte Shards - Rezepte veraltet?"));
 		if (zustand.fund.erkannt().isEmpty()) {
 			zeilen.add(Zeile.status("Keine Shards erkannt"));
 		} else if (zustand.ergebnis.isEmpty()) {
@@ -273,8 +269,7 @@ public final class Overlay {
 			int platz = 1;
 			for (Fusion f : zustand.ergebnis) {
 				zeilen.add(Zeile.fusion(platz, List.of(
-					platz + ". " + f.rezept().eingabeA().fusionsMenge() + "x " + f.rezept().eingabeA().name()
-							+ " + " + f.rezept().eingabeB().fusionsMenge() + "x " + f.rezept().eingabeB().name(),
+					platz + ". " + f.rezept().eingabeA().fusionsMenge() + "x " + f.rezept().eingabeA().name() + " + " + f.rezept().eingabeB().fusionsMenge() + "x " + f.rezept().eingabeB().name(),
 					"   -> " + f.rezept().ausgabeMenge() + "x " + f.rezept().ausgabe().name(),
 					"   " + Zahlen.kurz(f.kosten()) + " -> " + Zahlen.kurz(f.erloes()),
 					"   " + Zahlen.mitVorzeichen(f.gewinn()) + "  (" + (Double.isInfinite(f.rendite()) ? "∞" : Zahlen.prozent(f.rendite())) + ")"
@@ -292,20 +287,13 @@ public final class Overlay {
 		int i = (int) ((mouseY - menuY) / ZEILE);
 		return i >= 0 && i < count ? i : -1;
 	}
-
-	private static boolean imOverlay(Zustand z, double x, double y) {
-		return x >= z.x && x < z.x + z.breite && y >= z.y && y < z.y + z.hoehe;
-	}
-
-	private static boolean inRechteck(double x, double y, int rx, int ry, int rw, int rh) {
-		return x >= rx && x < rx + rw && y >= ry && y < ry + rh;
-	}
+	private static boolean imOverlay(Zustand z, double x, double y) { return x >= z.x && x < z.x + z.breite && y >= z.y && y < z.y + z.hoehe; }
+	private static boolean inRechteck(double x, double y, int rx, int ry, int rw, int rh) { return x >= rx && x < rx + rw && y >= ry && y < ry + rh; }
 
 	private static void button(GuiGraphicsExtractor grafik, Font schrift, int x, int y, int breite, String text, int mausX, int mausY) {
 		grafik.fill(x, y, x + breite, y + BUTTON_HOEHE, inRechteck(mausX, mausY, x, y, breite, BUTTON_HOEHE) ? FARBE_BUTTON_HOVER : FARBE_BUTTON);
 		grafik.text(schrift, text + " v", x + 4, y + 2, FARBE_TEXT);
 	}
-
 	private static void menue(GuiGraphicsExtractor grafik, Font schrift, int x, int y, int breite, Object[] werte, int aktuell, int mausX, int mausY) {
 		for (int i = 0; i < werte.length; i++) {
 			String text = werte[i] instanceof Einkaufsmodus e ? e.anzeige() : ((Verkaufsmodus) werte[i]).anzeige();
@@ -314,14 +302,12 @@ public final class Overlay {
 			grafik.text(schrift, text, x + 4, yy + 1, i == aktuell ? FARBE_TITEL : FARBE_TEXT);
 		}
 	}
-
 	private static void rahmen(GuiGraphicsExtractor grafik, int x, int y, int breite, int hoehe) {
 		grafik.fill(x, y, x + breite, y + 1, FARBE_RAHMEN);
 		grafik.fill(x, y + hoehe - 1, x + breite, y + hoehe, FARBE_RAHMEN);
 		grafik.fill(x, y, x + 1, y + hoehe, FARBE_RAHMEN);
 		grafik.fill(x + breite - 1, y, x + breite, y + hoehe, FARBE_RAHMEN);
 	}
-
 	private static String kuerzen(Font schrift, String text, int hoechstbreite) {
 		if (schrift.width(text) <= hoechstbreite) return text;
 		String gekuerzt = text;
@@ -334,7 +320,6 @@ public final class Overlay {
 		static Zeile statusWarn(String text) { return new Zeile(List.of(text), FARBE_WARNUNG, -1); }
 		static Zeile fusion(int index, List<String> text, int farbe) { return new Zeile(text, farbe, index); }
 	}
-
 	private record FusionRechteck(int index, int y, int hoehe) { }
 
 	private static final class Zustand {
@@ -350,16 +335,7 @@ public final class Overlay {
 		private int dropdown = -1;
 		private boolean ziehen;
 		private double ziehStartX, ziehStartY;
-
-		private Zustand(Einkaufsmodus einkauf, Verkaufsmodus verkauf) {
-			this.einkauf = einkauf;
-			this.verkauf = verkauf;
-		}
-
-		private void veralten() {
-			inhaltPruefsumme = Integer.MIN_VALUE;
-			preisstand = -1L;
-			letzteAbtastung = 0L;
-		}
+		private Zustand(Einkaufsmodus einkauf, Verkaufsmodus verkauf) { this.einkauf = einkauf; this.verkauf = verkauf; }
+		private void veralten() { inhaltPruefsumme = Integer.MIN_VALUE; preisstand = -1L; letzteAbtastung = 0L; }
 	}
 }
