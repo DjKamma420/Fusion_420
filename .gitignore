@@ -7,3 +7,10 @@ run/
 *.iml
 .vscode/
 .DS_Store
+
+# Lokale Konfiguration, Logs und Geheimnisse
+.env
+.env.*
+!.env.example
+*.log
+secrets/
