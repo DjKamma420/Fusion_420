@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** Ergebnis-Overlay fuer Fusionen, Marktfilter, Hover-Markierung und Drag-and-Drop. */
+/** Profit overlay for fusions, market filters, hover highlighting, and drag-and-drop positioning. */
 public final class Overlay {
 	private static final int ROW = 10, PAD = 5, BUTTON_H = 13;
 	private static final int BG = 0xD8101018, BORDER = 0xFF3C4A6E, TITLE = 0xFFF0BA4A;
@@ -134,8 +134,8 @@ public final class Overlay {
 		g.fill(x, y, x + width, y + height, BG);
 		drawBorder(g, x, y, width, height);
 		g.text(font, "Fusion 420", x + PAD, y + PAD, TITLE);
-		g.text(font, "Einkauf", z.buyX, y + 15, MUTED);
-		g.text(font, "Verkauf", z.sellX, y + 15, MUTED);
+		g.text(font, "Buy Price", z.buyX, y + 15, MUTED);
+		g.text(font, "Sell Price", z.sellX, y + 15, MUTED);
 		drawButton(g, font, z.buyX, z.controlY, z.controlW, z.einkauf.anzeige(), mx, my);
 		drawButton(g, font, z.sellX, z.controlY, z.controlW, z.verkauf.anzeige(), mx, my);
 
@@ -188,11 +188,11 @@ public final class Overlay {
 
 	private static List<Zeile> zeilen(Kontext k, Zustand z) {
 		Preisbuch p = k.preisbuch(); Rezeptbuch b = k.rezeptbuch(); List<Zeile> out = new ArrayList<>();
-		if (b == null) { out.add(Zeile.status("Rezepte werden geladen ...")); return out; }
-		if (p.standMillis() == 0L) { out.add(Zeile.status(p.letzterFehler() == null ? "Bazaar wird abgefragt ..." : "Bazaar: " + p.letzterFehler())); return out; }
-		if (z.fund.unbekannt() > 0) out.add(Zeile.warn("! " + z.fund.unbekannt() + " unbekannte Shards - Rezepte veraltet?"));
-		if (z.fund.erkannt().isEmpty()) out.add(Zeile.status("Keine Shards erkannt"));
-		else if (z.results.isEmpty()) out.add(Zeile.status(z.fund.erkannt().size() + " Shards, keine lohnende Fusion"));
+		if (b == null) { out.add(Zeile.status("Loading recipes...")); return out; }
+		if (p.standMillis() == 0L) { out.add(Zeile.status(p.letzterFehler() == null ? "Fetching Bazaar prices..." : "Bazaar: " + p.letzterFehler())); return out; }
+		if (z.fund.unbekannt() > 0) out.add(Zeile.warn("! " + z.fund.unbekannt() + " unknown shards - recipe data may be outdated"));
+		if (z.fund.erkannt().isEmpty()) out.add(Zeile.status("No shards detected"));
+		else if (z.results.isEmpty()) out.add(Zeile.status(z.fund.erkannt().size() + " shards, no profitable fusion"));
 		else {
 			int n = 1;
 			for (Fusion f : z.results) {
@@ -206,8 +206,8 @@ public final class Overlay {
 			}
 		}
 		long age = (System.currentTimeMillis() - p.standMillis()) / 1000L;
-		out.add(Zeile.status("Preise " + age + "s alt - Rezepte: " + b.herkunft()));
-		out.add(Zeile.status("Titel ziehen zum Verschieben"));
+		out.add(Zeile.status("Prices " + age + "s old - Recipes: " + b.herkunft()));
+		out.add(Zeile.status("Drag title bar to move"));
 		return out;
 	}
 
