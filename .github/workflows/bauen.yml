@@ -66,6 +66,61 @@ jobs:
           path: build/reports/tests/
           if-no-files-found: ignore
 
+      # Faengt ein Jar ab, dem Ressourcen, Klassen oder die ersetzte
+      # Version fehlen - all das laesst Fabric erst im Spiel scheitern.
+      - name: jar pruefen
+        run: |
+          python3 - <<'PY'
+          import glob, json, sys, zipfile
+
+          kandidaten = [j for j in glob.glob('build/libs/*.jar') if '-sources' not in j]
+          if not kandidaten:
+              sys.exit('Kein Jar in build/libs gebaut.')
+          pfad = kandidaten[0]
+
+          with zipfile.ZipFile(pfad) as z:
+              namen = set(z.namelist())
+              pflicht = [
+                  'fabric.mod.json',
+                  'fusion_420.mixins.json',
+                  'daten/fusion-data.json',
+                  'assets/fusion_420/icon.png',
+                  'de/kamma/fusion420/Fusion420Client.class',
+                  'de/kamma/fusion420/mixin/ContainerScreenZugriff.class',
+                  'de/kamma/fusion420/gui/Overlay.class',
+                  'de/kamma/fusion420/daten/Rezeptbuch.class',
+                  'de/kamma/fusion420/markt/Bazaar.class',
+                  'de/kamma/fusion420/rechner/Gewinnrechner.class',
+              ]
+              fehlend = [p for p in pflicht if p not in namen]
+              if fehlend:
+                  sys.exit('Im Jar fehlen: ' + ', '.join(fehlend))
+
+              beschreibung = json.loads(z.read('fabric.mod.json'))
+              if beschreibung['id'] != 'fusion_420':
+                  sys.exit('Falsche Mod-Kennung: ' + beschreibung['id'])
+              # processResources muss ${version} ersetzt haben; sonst startet Fabric nicht.
+              if '$' in beschreibung['version']:
+                  sys.exit('Version wurde nicht eingesetzt: ' + beschreibung['version'])
+              einstieg = beschreibung['entrypoints']['client'][0]
+              if einstieg.replace('.', '/') + '.class' not in namen:
+                  sys.exit('Einstiegsklasse fehlt im Jar: ' + einstieg)
+
+              # Die Rezeptdatei muss vollstaendig sein, nicht nur vorhanden.
+              daten = json.loads(z.read('daten/fusion-data.json'))
+              shards = len(daten['shards'])
+              if shards < 300:
+                  sys.exit('Rezeptdatei unvollstaendig: nur %d Shards' % shards)
+
+              klassen = sum(1 for n in namen if n.endswith('.class'))
+              print('Jar:        %s' % pfad.split('/')[-1])
+              print('Kennung:    %s  Version %s' % (beschreibung['id'], beschreibung['version']))
+              print('Einstieg:   %s' % einstieg)
+              print('Mixins:     %s' % ', '.join(
+                  m['config'] if isinstance(m, dict) else m for m in beschreibung['mixins']))
+              print('Inhalt:     %d Klassen, %d Shards in den Rezeptdaten' % (klassen, shards))
+          PY
+
       - name: jar sichern
         uses: actions/upload-artifact@v7
         with:
